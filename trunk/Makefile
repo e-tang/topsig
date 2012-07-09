@@ -7,8 +7,15 @@ else
   CCFLAGS_EXTRA = -march=native -mtune=native 
 endif
 
-LDFLAGS = -lm -lz -lbz2 -lpthread -g -O3
-CCFLAGS = -Wall -std=c99 -g -O3 -fno-strict-aliasing -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload ${CCFLAGS_EXTRA}
+ifeq ($(strip $(DEBUG)),)
+    BUILD = -g -O3
+else 
+    BUILD = -g3
+endif
+
+LDFLAGS = -lm -lz -lbz2 -lpthread ${BUILD}
+CCFLAGS = -Wall -std=c99 ${BUILD} -fno-strict-aliasing -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload ${CCFLAGS_EXTRA}
+
 #-ftree-vectorize is not included as this program does not satisfy the alignment requirement when searching
 
 OBJS = src/topsig-main.o \
