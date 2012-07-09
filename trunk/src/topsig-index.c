@@ -59,7 +59,7 @@ char *getnextfile(char *path)
       if (dir_ent) {
         if (strcmp(dir_ent->d_name, ".")==0) continue;
         if (strcmp(dir_ent->d_name, "..")==0) continue;
-        sprintf(path, "%s%s", curr_dir_path, dir_ent->d_name);
+        sprintf(path, "%s%s%s", curr_dir_path, getfileseparator(), dir_ent->d_name);
         return path;
       }
       closedir(curr_dir);
