@@ -3,5 +3,6 @@
 
 
 int is_directory(const char *);
+const char *getfileseparator();
 
 #endif /* TOPSIG_FILE_H_ */
