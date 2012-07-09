@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include "topsig-file.h"
 #include "topsig-filerw.h"
 #include "topsig-config.h"
 #include "topsig-process.h"
@@ -76,7 +77,7 @@ char *getnextfile(char *path)
     
     if (fpath == NULL) return NULL;
     if (fpath[0] != '\0') {
-      if (fpath[strlen(fpath)-1] == '/') { // Directory
+      if (is_directory(fpath)) { // Directory
         curr_dir_path = fpath;
         curr_dir = opendir(fpath);
       } else {

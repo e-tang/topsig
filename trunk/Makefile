@@ -30,6 +30,7 @@ src/topsig-query.o \
 src/topsig-search.o \
 src/topsig-topic.o \
 src/topsig-filerw.o \
+src/topsig-file.o \
 src/topsig-thread.o \
 src/topsig-tmalloc.o \
 src/topsig-progress.o \
