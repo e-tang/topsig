@@ -13,8 +13,8 @@ else
     BUILD = -g3
 endif
 
-LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread
-CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread -pg
+CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -pg
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
@@ -44,7 +44,7 @@ topsig:	${OBJS}
 		gcc -o $@ $+ ${LDFLAGS}
 
 all-at-once:		
-		gcc -o topsig src/*.c -fwhole-program ${CCFLAGS} ${LDFLAGS}
+		gcc -o topsig src/*.c -fwhole-program -flto ${CCFLAGS} ${LDFLAGS}
 
 clean:		
 		rm ${OBJS}
