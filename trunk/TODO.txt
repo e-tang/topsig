@@ -1,0 +1,3 @@
+- Incorporate collection and use of global statistics
+- Split out signature blocks and headers to improve cache performance
+- Fix clock()
