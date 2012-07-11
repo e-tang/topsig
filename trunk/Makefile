@@ -4,7 +4,7 @@
 ifeq "${shell uname -s}" "Darwin"
   CCFLAGS_EXTRA =
 else
-  CCFLAGS_EXTRA = -march=native -mtune=native 
+  CCFLAGS_EXTRA = -march=i486 -mtune=native 
 endif
 
 ifeq ($(strip $(DEBUG)),)
@@ -13,10 +13,8 @@ else
     BUILD = -g3
 endif
 
-LDFLAGS = -lm -lz -lbz2 -lpthread ${BUILD}
-CCFLAGS = -Wall -std=c99 ${BUILD} -fno-strict-aliasing -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload ${CCFLAGS_EXTRA}
-
-#-ftree-vectorize is not included as this program does not satisfy the alignment requirement when searching
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread
+CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
