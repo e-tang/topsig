@@ -367,19 +367,14 @@ void SignatureWrite(SignatureCache *C, Signature *sig, const char *docid)
   // this needs to be a thread-safe function. SignatureFlush
   // will be called at the end to write out any remaining
   // signatures
-    
-  // If the cache is filled, spinlock. Hopefully this will never
-  // be necessary
-  //printf("S\n");
+  
   tsem_wait(&sem_cachefree);
-    
+
   int available = atomic_add(&cache.state.available, 1);
-  //printf("T %d\n", available);
-  //printf("SignatureWrite() generating %d\n", available%SIGCACHESIZE);
+
   cache.sigs[available % SIGCACHESIZE] = sig;
   atomic_add(&cache.state.complete, 1);
   tsem_post(&sem_cacheused[available % SIGCACHESIZE]);
-
   if (C->iswriter) {
     SignatureFlush();
   }
@@ -387,7 +382,6 @@ void SignatureWrite(SignatureCache *C, Signature *sig, const char *docid)
 
 void SignatureFlush()
 {
-  //printf("SignatureFlush()\n");
   while (tsem_trywait(&sem_cacheused[cache.state.written%SIGCACHESIZE]) == 0) {
     dumpsignature(cache.sigs[cache.state.written%SIGCACHESIZE]);
     SignatureDestroy(cache.sigs[cache.state.written%SIGCACHESIZE]);
