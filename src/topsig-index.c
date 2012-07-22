@@ -135,6 +135,108 @@ void AR_file(FileHandle *fp)
   indexfile(docid, filedat);
 }
 
+
+#define WARC_BUFFER 4096
+int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
+  int bspace = WARC_BUFFER - *buffer_filled;
+  int eof = 0;
+  int octets_read = file_read(buffer + *buffer_filled, bspace, fp);
+  if (octets_read < bspace) {
+    eof = 1;
+  }
+  *buffer_filled = *buffer_filled + octets_read;
+  
+  return eof;
+}
+
+void warc_erasebuffer(char *buffer, int *buffer_filled, int erase_bytes)
+{
+  // Erase 'erase_bytes' bytes from the buffer, moving the remaining portion
+  // to the start.
+  memmove(buffer, buffer + erase_bytes, WARC_BUFFER - erase_bytes);
+  *buffer_filled -= erase_bytes;
+}
+
+void AR_warc(FileHandle *fp)
+{
+  char buffer[WARC_BUFFER];
+  char header[WARC_BUFFER];
+  int buffer_filled = 0;
+  int eof = 0;
+  // WARC files consist of records with headers, containing several named fields
+  // and ending in two newlines. 
+  
+  while (!(eof && (buffer_filled == 0))) {
+    eof = warc_fillbuffer(fp, buffer, &buffer_filled);
+    char *header_end = strstr(buffer, "\n\n");
+    if (header_end == NULL) {
+      fprintf(stderr, "WARC format error\n");
+      exit(1);
+    }
+    
+    header_end += 2;
+    size_t header_size = header_end - buffer;
+    strncpy(header, buffer, header_size);
+    header[header_size] = '\0';
+    
+    // WARC records have plenty of records, the ones we care about are
+    // 'WARC-Type', 'WARC-TREC-ID' and 'Content-Length'
+    
+    char WARC_Type[256] = "";
+    char WARC_TREC_ID[256] = "";
+    char fieldname[256];
+    int Content_Length = -1;
+    char *pos;
+    pos = strstr(header, "WARC-Type:");
+    if (pos) {
+      sscanf(pos, "%s %s", fieldname, WARC_Type);
+    } else {
+      fprintf(stderr, "WARC format error\n");
+      exit(1);
+    }
+    pos = strstr(header, "Content-Length:");
+    if (pos) {
+      sscanf(pos, "%s %d", fieldname, &Content_Length);
+    } else {
+      fprintf(stderr, "WARC format error\n");
+      exit(1);
+    }
+    
+    pos = strstr(header, "WARC-TREC-ID:");
+    if (pos) {
+      sscanf(pos, "%s %s", fieldname, WARC_TREC_ID);
+    }
+    
+    warc_erasebuffer(buffer, &buffer_filled, header_size);
+    
+    char *filename = malloc(strlen(WARC_TREC_ID) + 1);
+    strcpy(filename, WARC_TREC_ID);
+    char *filedat = malloc(Content_Length + 1);
+    int filedat_size = 0;
+    
+    while (filedat_size < Content_Length) {
+      int buffer_copy = buffer_filled;
+      if (Content_Length - filedat_size < buffer_copy) {
+        buffer_copy = Content_Length - filedat_size;
+      }
+      memcpy(filedat+filedat_size, buffer, buffer_copy);
+      warc_erasebuffer(buffer, &buffer_filled, buffer_copy);
+      filedat_size += buffer_copy;
+      
+      eof = warc_fillbuffer(fp, buffer, &buffer_filled);
+    }
+    filedat[filedat_size] = '\0';
+    
+    if (lc_strcmp(WARC_Type, "response")==0) {
+      //printf("Index [%s]\n", filename);
+      indexfile(filename, filedat);
+    } else {
+      free(filename);
+      free(filedat);
+    }
+  }
+}
+
 void AR_tar(FileHandle *fp)
 {
   char buffer[512];
@@ -222,6 +324,7 @@ void RunIndex()
   if (lc_strcmp(targetformat, "file")==0) archivereader = AR_file;
   if (lc_strcmp(targetformat, "tar")==0) archivereader = AR_tar;
   if (lc_strcmp(targetformat, "wsj")==0) archivereader = AR_wsj;
+  if (lc_strcmp(targetformat, "warc")==0) archivereader = AR_warc;
   
   if (archivereader == NULL) {
     fprintf(stderr, "Invalid/unspecified TARGET-FORMAT\n");
@@ -229,7 +332,7 @@ void RunIndex()
   }
   
   while (getnextfile(path)) {
-    printf("%s\n", path);
+    //printf("%s\n", path);
     FileHandle *fp = file_open(path);
     if (fp) {
       strcpy(current_archive_path, path);
