@@ -55,13 +55,14 @@ void CallOnce(void (*func)())
 #include "topsig-signature.h"
 #include "topsig-semaphore.h"
 
-#define JOB_POOL 256
+#define JOB_POOL 512
 
 TSemaphore sem_jobs_ready;
 TSemaphore sem_job_avail[JOB_POOL];
 
 struct thread_job {
   enum {EMPTY, READY, TAKEN} state;
+  int owner;
   char *filename;
   char *filedat;
 };
@@ -83,10 +84,20 @@ void ThreadYield()
   sched_yield();
 }
 
+void *start_work_writer(void *sigcache_ptr)
+{
+  SignatureCache *C = sigcache_ptr;
+  for (;;) {
+    SignatureFlush();
+    ThreadYield();
+  }
+}
 void *start_work(void *sigcache_ptr)
 {
   SignatureCache *C = sigcache_ptr;
   int threadID = atomic_add(&threads_running, 1);
+  char threadID_s[4];
+  
   for (;;) {
     tsem_wait(&sem_jobs_ready);
     if (finishup) break;
@@ -94,10 +105,11 @@ void *start_work(void *sigcache_ptr)
     int currjob = atomic_add(&jobs_start, 1) % JOB_POOL;
 
     jobs[currjob].state = TAKEN;
-    //printf("%d> %d ProcessFile(%s)\n",threadID,currjob,jobs[currjob].filename);
+    jobs[currjob].owner = threadID;
     ProcessFile(C, jobs[currjob].filename, jobs[currjob].filedat);
     
     jobs[currjob].state = EMPTY;
+  
     atomic_add(&jobs_complete, 1);
     atomic_sub(&current_jobs, 1);
     tsem_post(&sem_job_avail[currjob]);
@@ -121,7 +133,7 @@ void ProcessFile_Threaded(char *arg_filename, char *arg_filedat)
       tsem_init(&sem_job_avail[i], 0, 1);
     }
 
-    threadpool_size = atoi(Config("INDEX-THREADS"));
+    threadpool_size = atoi(Config("INDEX-THREADS"))+1;
     threadpool = tmalloc(sizeof(pthread_t) * threadpool_size);
     threadcache = tmalloc(sizeof(SignatureCache *) * threadpool_size);
 
@@ -131,18 +143,21 @@ void ProcessFile_Threaded(char *arg_filename, char *arg_filedat)
     jobs_complete = 0;
     finishup = 0;
 
-    for (int i = 0; i < threadpool_size; i++) {
-      threadcache[i] = NewSignatureCache(i == 0 ? 1 : 0, 1);
+    threadcache[0] = NewSignatureCache(2, 0);
+    pthread_create(threadpool+0, NULL, start_work_writer, threadcache[0]);
+    for (int i = 1; i < threadpool_size; i++) {
+      threadcache[i] = NewSignatureCache(0, 1);
       pthread_create(threadpool+i, NULL, start_work, threadcache[i]);
     }
   }
-  
   int currjob = atomic_add(&jobs_end, 1) % JOB_POOL;
+
   tsem_wait(&sem_job_avail[currjob]);
 
   jobs[currjob].filename = arg_filename;
   jobs[currjob].filedat = arg_filedat;
   jobs[currjob].state = READY;
+
   atomic_add(&current_jobs, 1);
   tsem_post(&sem_jobs_ready);
   //printf("Job %d ready.\n", currjob);
