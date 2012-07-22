@@ -8,13 +8,13 @@ else
 endif
 
 ifeq ($(strip $(DEBUG)),)
-    BUILD = -g -O3
+    BUILD = -O3
 else 
     BUILD = -g3
 endif
 
-LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread -pg
-CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -pg
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread
+CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
@@ -38,13 +38,13 @@ src/ISAAC-rand.o
 default:	topsig
 
 %.o:		%.c
-		gcc -c -o $@ $? ${CCFLAGS}
+		gcc ${CCFLAGS} -c -o $@ $?
 
 topsig:	${OBJS}
 		gcc -o $@ $+ ${LDFLAGS}
 
 all-at-once:		
-		gcc -o topsig src/*.c -fwhole-program -flto ${CCFLAGS} ${LDFLAGS}
+		gcc ${CCFLAGS} -o topsig src/*.c -fwhole-program -flto ${LDFLAGS}
 
 clean:		
 		rm ${OBJS}
