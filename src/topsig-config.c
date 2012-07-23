@@ -6,11 +6,11 @@
 #include "uthash.h"
 #include "topsig-config.h"
 #include "topsig-global.h"
-#include "topsig-tmalloc.h"
 
 #include "topsig-process.h"
 #include "topsig-stop.h"
 #include "topsig-stem.h"
+#include "topsig-stats.h"
 #include "topsig-signature.h"
 #include "topsig-progress.h"
 
@@ -18,6 +18,7 @@ void ConfigUpdate()
 {
   Process_InitCfg();
   Stop_InitCfg();
+  Stats_InitCfg();
   Stem_InitCfg();
   Signature_InitCfg();
   Progress_InitCfg();
@@ -59,7 +60,7 @@ static void configadd(const char *var, const char *val)
   
   HASH_FIND_STR(configmap, var, cfg);
   if (cfg == NULL) {
-    cfg = tmalloc(sizeof(ConfigOption));
+    cfg = malloc(sizeof(ConfigOption));
     strcpy(cfg->var, var);
     HASH_ADD_STR(configmap, var, cfg);
   }
