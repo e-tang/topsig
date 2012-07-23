@@ -1,5 +1,3 @@
-// Modified slighty to use tmalloc instead of malloc
-
 /*
 Copyright (c) 2003-2011, Troy D. Hanson     http://uthash.sourceforge.net
 All rights reserved.
@@ -29,7 +27,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>   /* memcmp,strlen */
 #include <stddef.h>   /* ptrdiff_t */
 #include <stdlib.h>   /* exit() */
-#include "topsig-tmalloc.h"   /* tmalloc(), tfree() */
 
 /* These macros use decltype or the earlier __typeof GNU extension.
    As decltype is only available in newer compilers (VS2010 or gcc 4.3+
@@ -70,8 +67,8 @@ typedef unsigned char uint8_t;
 #define UTHASH_VERSION 1.9.4
 
 #define uthash_fatal(msg) exit(-1)        /* fatal error (out of memory,etc) */
-#define uthash_malloc(sz) tmalloc(sz)     /* malloc fcn                      */
-#define uthash_free(ptr,sz) tfree(ptr)    /* free fcn                        */
+#define uthash_malloc(sz) malloc(sz)     /* malloc fcn                      */
+#define uthash_free(ptr,sz) free(ptr)    /* free fcn                        */
 
 #define uthash_noexpand_fyi(tbl)          /* can be defined to log noexpand  */
 #define uthash_expand_fyi(tbl)            /* can be defined to log expands   */
