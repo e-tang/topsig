@@ -4,7 +4,6 @@
 #include "topsig-filerw.h"
 #include "topsig-config.h"
 #include "topsig-global.h"
-#include "topsig-tmalloc.h"
 
 // Abstracted file IO. Compressed formats can be disabled with NO_GZ
 // and NO_BZ2 to remove libgz and libbz2 dependencies respectively.
@@ -114,7 +113,7 @@ void file_open_none(struct FileHandle_none *fp, const char *path)
 void file_close_none(struct FileHandle_none *fp)
 {
   fclose(fp->fp);
-  tfree(fp);
+  free(fp);
 }
 
 int file_read_none(void *buffer, int length, struct FileHandle_none *fp)
@@ -131,7 +130,7 @@ union FileHandle {
 
 FileHandle *file_open(const char *path) {
   file_compression mode = NONE;
-  FileHandle *fp = tmalloc(sizeof(FileHandle));
+  FileHandle *fp = malloc(sizeof(FileHandle));
   
   char *targetcompression = Config("TARGET-FORMAT-COMPRESSION");
   if (lc_strcmp(targetcompression, "none")==0) mode = NONE;

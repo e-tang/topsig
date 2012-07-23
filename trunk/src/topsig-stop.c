@@ -11,7 +11,6 @@
 #include "topsig-stem.h"
 #include "topsig-atomic.h"
 #include "topsig-thread.h"
-#include "topsig-tmalloc.h"
 
 // Thread-safe stopping
 
@@ -52,7 +51,7 @@ void Stop_InitCfg()
     struct stopword *newStopword;
     HASH_FIND_STR(stoplist, term, newStopword);
     if (newStopword == NULL) {
-      newStopword = tmalloc(sizeof(struct stopword));
+      newStopword = malloc(sizeof(struct stopword));
       strcpy(newStopword->t, term);
       HASH_ADD_STR(stoplist, t, newStopword);
     }

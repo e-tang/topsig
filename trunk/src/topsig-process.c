@@ -10,7 +10,6 @@
 #include "topsig-signature.h"
 #include "topsig-global.h"
 #include "topsig-thread.h"
-#include "topsig-tmalloc.h"
 #include "topsig-progress.h"
 
 // All code here should be sufficiently thread safe and reentrant as it
@@ -54,7 +53,7 @@ static docterm *addterm(docterm *termlist, char *term, int termlen, int *docterm
   if (dterm) {
     dterm->count++;
   } else {
-    docterm *newterm = tmalloc(sizeof(docterm));
+    docterm *newterm = malloc(sizeof(docterm));
     strcpy(newterm->term, term);
     newterm->count = 1;
     newterm->termlen = termlen;
@@ -102,7 +101,7 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
     total_terms += curr->count;
     SignatureAdd(C, sig, curr->term, curr->count);
     HASH_DEL(lastdoc, curr);
-    tfree(curr);
+    free(curr);
   }
   if (merge) {
     HASH_ITER(hh, doc, curr, tmp) {
@@ -110,7 +109,7 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
       total_terms += curr->count;
       SignatureAdd(C, sig, curr->term, curr->count);
       HASH_DEL(doc, curr);
-      tfree(curr);
+      free(curr);
     }
     doc = NULL;
   }
@@ -202,8 +201,8 @@ void ProcessFile(SignatureCache *C, char *identifier, char *filedat)
   docterms = 0;
   doc = NULL;
   lastdoc = NULL;
-  tfree(identifier);
-  tfree(filedat);
+  free(identifier);
+  free(filedat);
   //printf("ProcessFile() out\n");fflush(stdout);
 }
 

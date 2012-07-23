@@ -3,7 +3,6 @@
 #include "topsig-config.h"
 #include "topsig-query.h"
 #include "topsig-search.h"
-#include "topsig-tmalloc.h"
 
 void RunQuery()
 {

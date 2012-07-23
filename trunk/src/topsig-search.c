@@ -9,7 +9,6 @@
 #include "topsig-stem.h"
 #include "topsig-stop.h"
 #include "topsig-thread.h"
-#include "topsig-tmalloc.h"
 
 struct Search {
   FILE *sig;
@@ -50,7 +49,7 @@ struct Results {
 // Initialise a search handle to be used for searching a collection multiple times with minimal delay
 Search *InitSearch()
 {
-  Search *S = tmalloc(sizeof(Search));
+  Search *S = malloc(sizeof(Search));
 
   S->sigcache = NewSignatureCache(0, 0); 
   
@@ -67,7 +66,7 @@ Search *InitSearch()
   }
   S->cache_size = atoi(C);
   
-  S->cache = tmalloc((size_t)S->cache_size * 1024 * 1024);
+  S->cache = malloc((size_t)S->cache_size * 1024 * 1024);
   if (!S->cache) {
     fprintf(stderr, "Unable to allocate signature cache\n");
     exit(1);
@@ -252,10 +251,10 @@ void MergeResults(Results *base, Results *add)
   qsort(res, base->k + add->k, sizeof(res[0]), result_compar);
   
   for (int i = base->k; i < base->k + add->k; i++) {
-    tfree(res[i].docid);
-    tfree(res[i].signature);
+    free(res[i].docid);
+    free(res[i].signature);
   }
-  tfree(add);
+  free(add);
   
   for (int i = 0; i < base->k; i++) {
     base->res[i] = res[i];
@@ -266,11 +265,11 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
 {
   //printf("FindHighestScoring()\n");
   //printf("S\n");fflush(stdout);
-  Results *R = tmalloc(sizeof(Results) - sizeof(struct Result) + sizeof(struct Result)*topk);
+  Results *R = malloc(sizeof(Results) - sizeof(struct Result) + sizeof(struct Result)*topk);
   R->k = topk;
   for (int i = 0; i < topk; i++) {
-    R->res[i].docid = tmalloc(S->cfg.docnamelen + 1);
-    R->res[i].signature = tmalloc(S->cfg.length / 8);
+    R->res[i].docid = malloc(S->cfg.docnamelen + 1);
+    R->res[i].signature = malloc(S->cfg.length / 8);
     R->res[i].score = -1.0;
     R->res[i].docid[0] = '_';
     R->res[i].docid[1] = '\0';
@@ -424,16 +423,16 @@ void Writer_trec(FILE *out, const char *topic_id, Results *R)
 void FreeResults(Results *R)
 {
   for (int i = 0; i < R->k; i++) {
-    tfree(R->res[i].docid);
-    tfree(R->res[i].signature);
+    free(R->res[i].docid);
+    free(R->res[i].signature);
   }
-  tfree(R);
+  free(R);
 }
 
 void FreeSearch(Search *S)
 {
   fclose(S->sig);
   DestroySignatureCache(S->sigcache);
-  tfree(S->cache);
-  tfree(S);
+  free(S->cache);
+  free(S);
 }

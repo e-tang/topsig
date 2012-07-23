@@ -6,7 +6,6 @@
 #include "topsig-filerw.h"
 #include "topsig-config.h"
 #include "topsig-process.h"
-#include "topsig-tmalloc.h"
 #include "topsig-thread.h"
 #include "topsig-signature.h"
 #include "topsig-global.h"
@@ -17,7 +16,7 @@ static char current_archive_path[2048];
 
 char *DocumentID(char *path)
 {
-  char *docid = tmalloc(strlen(path)+1);
+  char *docid = malloc(strlen(path)+1);
   if (lc_strcmp(Config("DOCID-FORMAT"), "path")==0) {
     strcpy(docid, path);
   } else if (lc_strcmp(Config("DOCID-FORMAT"), "basename.ext")==0) {
@@ -250,7 +249,7 @@ void AR_tar(FileHandle *fp)
     int file_size;
     sscanf(buffer+124, "%i", &file_size);
     
-    char *filedat = tmalloc(file_size + 1);
+    char *filedat = malloc(file_size + 1);
     for (int file_offset = 0; file_offset < file_size; file_offset += 512) {
       file_read(buffer, 512, fp);
       int blocklen = file_size - file_offset;
@@ -291,13 +290,13 @@ void AR_wsj(FileHandle *fp)
         title_start += 7;
         
         int title_len = title_end - title_start;
-        char *filename = tmalloc(title_len + 1);
+        char *filename = malloc(title_len + 1);
         memcpy(filename, title_start, title_len);
         filename[title_len] = '\0';
                 
         archiveSize = doc_end-doc_start;
 
-        char *filedat = tmalloc(archiveSize + 1);
+        char *filedat = malloc(archiveSize + 1);
         memcpy(filedat, doc_start, archiveSize);
         filedat[archiveSize] = '\0';
         

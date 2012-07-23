@@ -9,8 +9,8 @@
 #include "topsig-thread.h"
 #include "ISAAC-rand.h"
 #include "uthash.h"
-#include "topsig-tmalloc.h"
 #include "topsig-semaphore.h"
+#include "topsig-stats.h"
 
 struct cacheterm {
   UT_hash_handle hh;
@@ -58,11 +58,11 @@ static struct {
 
 SignatureCache *NewSignatureCache(int iswriter, int iscached)
 {
-  SignatureCache *C = tmalloc(sizeof(SignatureCache));
+  SignatureCache *C = malloc(sizeof(SignatureCache));
   C->cache_map = NULL;
   
   if (iscached) {
-    C->cache_list = tmalloc(sizeof(struct cacheterm *) * cfg.termcachesize);
+    C->cache_list = malloc(sizeof(struct cacheterm *) * cfg.termcachesize);
     memset(C->cache_list, 0, sizeof(struct cacheterm *) * cfg.termcachesize);
   } else {
     C->cache_list = NULL;
@@ -94,9 +94,9 @@ Signature *NewSignature(const char *docid)
 {
   size_t sigsize = sizeof(Signature) - sizeof(int);
   sigsize += cfg.length * sizeof(int);
-  Signature *sig = tmalloc(sigsize);
+  Signature *sig = malloc(sigsize);
   memset(sig, 0, sigsize);
-  sig->id = tmalloc(strlen(docid) + 1);
+  sig->id = malloc(strlen(docid) + 1);
   strcpy(sig->id, docid);
   
   return sig;
@@ -111,8 +111,8 @@ void SignatureFillDoubles(Signature *sig, double *array)
 
 void SignatureDestroy(Signature *sig)
 {
-  tfree(sig->id);
-  tfree(sig);
+  free(sig->id);
+  free(sig);
 }
 
 void SignaturePrint(Signature *sig)
@@ -170,6 +170,11 @@ static void sig_SKIP_add(int *, randctx *);
 
 void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count)
 {
+  int weight = count;
+  
+  // LOG-LIKELIHOOD
+  int tcf = TermFrequencyStats(term);
+  
   //printf("SignatureAdd() in\n");fflush(stdout);
   int sigarray[cfg.length];
   memset(sigarray, 0, cfg.length * sizeof(int));
@@ -209,7 +214,7 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
       struct cacheterm *newterm = NULL;
       
       if (C->cache_list[C->cache_pos] == NULL) {
-        C->cache_list[C->cache_pos] = tmalloc(sizeof(struct cacheterm) - sizeof(int) + cfg.length * sizeof(int));
+        C->cache_list[C->cache_pos] = malloc(sizeof(struct cacheterm) - sizeof(int) + cfg.length * sizeof(int));
         newterm = C->cache_list[C->cache_pos];
       } else {
         newterm = C->cache_list[C->cache_pos];
@@ -224,8 +229,10 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
     }
   }
   
+  
+  
   for (int i = 0; i < cfg.length; i++) {
-    sig->S[i] += sigarray[i] * count;
+    sig->S[i] += sigarray[i] * weight;
   }
   //printf("SignatureAdd() out\n");fflush(stdout);
 }

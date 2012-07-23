@@ -210,6 +210,15 @@ OUTPUT-PERIOD = 1000
 # meter when progress is output.
 
 #----------------------------------------------------------------------
+# TERM STATISTICS
+#----------------------------------------------------------------------
+
+# TERMSTATS-PATH - path to a file containing term statistics, necessary
+# for some ranking functions. Reading this in will consume some memory
+# depending on the site of the file
+#TERMSTATS-PATH = docstats.stat
+
+#----------------------------------------------------------------------
 # MISCELLANEOUS
 #----------------------------------------------------------------------
 

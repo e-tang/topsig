@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>  /* for malloc, free */
 #include <string.h>  /* for memcmp, memmove */
-#include "topsig-tmalloc.h"
 
 /* You will probably want to move the following declarations to a central
    header file.
@@ -83,13 +82,13 @@ struct stemmer {
 
 extern struct stemmer * create_stemmer(void)
 {
-    return (struct stemmer *) tmalloc(sizeof(struct stemmer));
+    return (struct stemmer *) malloc(sizeof(struct stemmer));
     /* assume malloc succeeds */
 }
 
 extern void free_stemmer(struct stemmer * z)
 {
-    tfree(z);
+    free(z);
 }
 
 

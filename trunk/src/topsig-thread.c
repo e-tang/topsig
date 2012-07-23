@@ -50,7 +50,6 @@ void CallOnce(void (*func)())
 #include "topsig-process.h"
 #include "topsig-atomic.h"
 #include "topsig-global.h"
-#include "topsig-tmalloc.h"
 #include "topsig-search.h"
 #include "topsig-signature.h"
 #include "topsig-semaphore.h"
@@ -137,8 +136,8 @@ void ProcessFile_Threaded(char *arg_filename, char *arg_filedat)
     }
 
     threadpool_size = atoi(Config("INDEX-THREADS"))+1;
-    threadpool = tmalloc(sizeof(pthread_t) * threadpool_size);
-    threadcache = tmalloc(sizeof(SignatureCache *) * threadpool_size);
+    threadpool = malloc(sizeof(pthread_t) * threadpool_size);
+    threadcache = malloc(sizeof(SignatureCache *) * threadpool_size);
 
     jobs_start = 0;
     jobs_end = 0;
