@@ -88,6 +88,7 @@ void *start_work_writer(void *sigcache_ptr)
 {
   SignatureCache *C = sigcache_ptr;
   for (;;) {
+    if (finishup) break;
     SignatureFlush();
     ThreadYield();
   }
