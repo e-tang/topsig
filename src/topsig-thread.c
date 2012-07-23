@@ -92,7 +92,9 @@ void *start_work_writer(void *sigcache_ptr)
     SignatureFlush();
     ThreadYield();
   }
+  return NULL;
 }
+
 void *start_work(void *sigcache_ptr)
 {
   SignatureCache *C = sigcache_ptr;
