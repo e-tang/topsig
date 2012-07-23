@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 #include "topsig-signature.h"
 #include "topsig-config.h"
 #include "topsig-atomic.h"
@@ -168,12 +169,26 @@ static void sig_SKIP_add(int *, randctx *);
 
 // Signature term cache setup
 
-void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count)
+void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
 {
   int weight = count;
   
-  // LOG-LIKELIHOOD
-  int tcf = TermFrequencyStats(term);
+  int termStats = TermFrequencyStats(term);
+  if (termStats != -1) {
+    int tcf;
+    double logLikelihood;
+    
+    if (termStats) {
+      tcf = termStats;
+    } else {
+      tcf=1;
+    }
+  
+    logLikelihood = log((double) count / (double) total_count * (double) 643458198.0 / (double) tcf);
+    if (logLikelihood > 0) {
+      weight = logLikelihood * count * 1000.0;
+    }
+  }
   
   //printf("SignatureAdd() in\n");fflush(stdout);
   int sigarray[cfg.length];

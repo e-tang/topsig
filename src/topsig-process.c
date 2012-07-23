@@ -99,7 +99,9 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
   HASH_ITER(hh, lastdoc, curr, tmp) {
     unique_terms += 1;
     total_terms += curr->count;
-    SignatureAdd(C, sig, curr->term, curr->count);
+  }
+  HASH_ITER(hh, lastdoc, curr, tmp) {
+    SignatureAdd(C, sig, curr->term, curr->count, total_terms);
     HASH_DEL(lastdoc, curr);
     free(curr);
   }
@@ -107,7 +109,9 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
     HASH_ITER(hh, doc, curr, tmp) {
       unique_terms += 1;
       total_terms += curr->count;
-      SignatureAdd(C, sig, curr->term, curr->count);
+    }
+    HASH_ITER(hh, doc, curr, tmp) {
+      SignatureAdd(C, sig, curr->term, curr->count, total_terms);
       HASH_DEL(doc, curr);
       free(curr);
     }

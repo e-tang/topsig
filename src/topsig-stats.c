@@ -22,7 +22,10 @@ int TermFrequencyStats(const char *term)
   if (termtable == NULL) return -1;
   StatTerm *cterm;
   HASH_FIND_STR(termtable, term, cterm);
-  return cterm->freq_terms;
+  if (cterm)
+    return cterm->freq_terms;
+  else
+    return 0;
 }
 
 void Stats_InitCfg()

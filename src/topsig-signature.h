@@ -15,7 +15,7 @@ void Signature_InitCfg();
 Signature *NewSignature(const char *docid);
 void SignatureFillDoubles(Signature *, double *);
 void SignatureDestroy(Signature *sig);
-void SignatureAdd(SignatureCache *, Signature *, const char *term, int count);
+void SignatureAdd(SignatureCache *, Signature *, const char *term, int count, int total_count);
 void SignatureSetValues(Signature *sig, int terms_in_signature, int terms_in_document, int unused_3, int unused_4, int unused_5, int unused_6, int unused_7, int unused_8);
 void SignatureWrite(SignatureCache *, Signature *, const char *docid);
 void SignatureFlush();
