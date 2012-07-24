@@ -148,7 +148,7 @@ static Signature *create_query_signature(Search *S, const char *query)
         Stem(term);
         
         if (!IsStopword(term)) {
-          SignatureAdd(S->sigcache, sig, term, 1);
+          SignatureAdd(S->sigcache, sig, term, 1, 0);
         }
         termstart = NULL;
       }
