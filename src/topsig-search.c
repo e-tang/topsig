@@ -311,7 +311,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
     if (duplicate_found == -1) {
       if (score > R->res[lowest_j].score) {
         R->res[lowest_j].score = score;
-        strncpy(R->res[lowest_j].docid, docid, S->cfg.docnamelen);
+        strncpy(R->res[lowest_j].docid, docid, S->cfg.docnamelen + 1);
         memcpy(R->res[lowest_j].signature, signature, S->cfg.length / 8);
       }
     } else {
