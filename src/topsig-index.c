@@ -247,7 +247,7 @@ void AR_tar(FileHandle *fp)
     char *filename = DocumentID(buffer);
     
     int file_size;
-    sscanf(buffer+124, "%i", &file_size);
+    sscanf(buffer+124, "%o", &file_size);
     
     char *filedat = malloc(file_size + 1);
     for (int file_offset = 0; file_offset < file_size; file_offset += 512) {
