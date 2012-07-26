@@ -67,6 +67,12 @@ TARGET-FORMAT-FILTER = none
 # DOCID-FORMAT = path (pages/003/15032003.xml)
 # DOCID-FORMAT = basename (15032003)
 # DOCID-FORMAT = basename.ext (15032003.xml)
+# DOCID-FORMAT = xmlfield (depends)
+# The 'xmlfield' setting finds the document ID from within the XML file,
+# specified with the configuration param XML-DOCID-FIELD. e.g.
+#   XML-DOCID-FIELD = docname
+# This would use the text between <docname> and </docname> in the file
+# as the document ID.
 DOCID-FORMAT = basename
 
 #Variables used for splitting.
