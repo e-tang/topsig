@@ -14,10 +14,11 @@
 
 static char current_archive_path[2048];
 
-char *DocumentID(char *path)
+static char *DocumentID(char *path, char *data)
 {
-  char *docid = malloc(strlen(path)+1);
+  char *docid = NULL;
   if (lc_strcmp(Config("DOCID-FORMAT"), "path")==0) {
+    docid = malloc(strlen(path)+1);
     strcpy(docid, path);
   } else if (lc_strcmp(Config("DOCID-FORMAT"), "basename.ext")==0) {
     char *p = strrchr(path, '/');
@@ -25,6 +26,7 @@ char *DocumentID(char *path)
       p = path;
     else
       p = p + 1;
+    docid = malloc(strlen(p)+1);
     strcpy(docid, p);
   } else if (lc_strcmp(Config("DOCID-FORMAT"), "basename")==0) {
     char *p = strrchr(path, '/');
@@ -32,9 +34,33 @@ char *DocumentID(char *path)
       p = path;
     else
       p = p + 1;
+    docid = malloc(strlen(p)+1);
     strcpy(docid, p);
     p = strrchr(docid, '.');
     if (p) *p = '\0';
+  } else if (lc_strcmp(Config("DOCID-FORMAT"), "xmlfield")==0) {
+    char *docid_field = Config("XML-DOCID-FIELD");
+    if (!docid_field) {
+      fprintf(stderr, "DOCID-FORMAT=xmlfield but XML-DOCID-FIELD unspecified\n");
+      exit(1);
+    }
+    
+    char xml_open[256], xml_close[256];
+    sprintf(xml_open, "<%s>", docid_field);
+    sprintf(xml_close, "</%s>", docid_field);
+    
+    char *start = strstr(data, xml_open);
+    char *end = strstr(data, xml_close);
+    if (!start || !end) {
+      // XML field not found. Use path
+      docid = malloc(strlen(path)+1);
+      strcpy(docid, path);
+    } else {
+      start += strlen(xml_open);
+      docid = malloc(end - start + 1);
+      memcpy(docid, start, end - start);
+      docid[end - start] = '\0';
+    }
   } else {
     fprintf(stderr, "DOCID-FORMAT invalid.\n");
     exit(1);
@@ -128,8 +154,8 @@ void AR_file(FileHandle *fp)
     buffersize *= 2;
   }
   
-  char *docid = DocumentID(current_archive_path);
   filedat[filesize] = '\0';
+  char *docid = DocumentID(current_archive_path, filedat);
   
   indexfile(docid, filedat);
 }
@@ -237,20 +263,18 @@ void AR_warc(FileHandle *fp)
 }
 
 void AR_tar(FileHandle *fp)
-{
-  char buffer[512];
-  
+{ 
   for (;;) {
+    char buffer[512];
     int rlen = file_read(buffer, 512, fp);
     if (rlen < 512) break;
-    
-    char *filename = DocumentID(buffer);
-    
+        
     int file_size;
     sscanf(buffer+124, "%o", &file_size);
     
     char *filedat = malloc(file_size + 1);
     for (int file_offset = 0; file_offset < file_size; file_offset += 512) {
+      char buffer[512];
       file_read(buffer, 512, fp);
       int blocklen = file_size - file_offset;
       if (blocklen > 512) blocklen = 512;
@@ -258,6 +282,7 @@ void AR_tar(FileHandle *fp)
       memcpy(filedat + file_offset, buffer, blocklen);
     }
     filedat[file_size] = '\0';
+    char *filename = DocumentID(buffer, filedat);
     indexfile(filename, filedat);
   }
 }
