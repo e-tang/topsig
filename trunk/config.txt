@@ -25,20 +25,19 @@
 # INDEXING
 #----------------------------------------------------------------------
 
-# Indexing target. If the path ends in a slash, this is assumed to be a
-# directory. Otherwise it is assumed to be a single file.
+# Indexing target. Specify a file or a directory of files to index.
 # Examples:
 # TARGET-PATH = foo.tar.gz
 # TARGET-PATH = ~/foo.tar.gz
 # TARGET-PATH = C:/stuff/foo.tar.gz
-# TARGET-PATH = foobar/
-# TARGET-PATH = C:/stuff/foobar/
+# TARGET-PATH = foobar
+# TARGET-PATH = C:/stuff/foobar
 
 # Additional files/directories can be added through TARGET-PATH-2,
 # TARGET-PATH-3 etc.
 # Examples:
 # TARGET-PATH-2 = bar.tar.gz
-# TARGET-PATH-3 = somestuff/
+# TARGET-PATH-3 = somestuff
 # Virtually any number of extra targets can be added in this fashion.
 
 # The format of the target file (either a single file or a directory of
@@ -51,8 +50,8 @@
 # The compression format of the target.
 # Examples
 # TARGET-FORMAT-COMPRESSION = none
-# TARGET-FORMAT-COMPRESSION = gz (N)
-# TARGET-FORMAT-COMPRESSION = bz2 (N)
+# TARGET-FORMAT-COMPRESSION = gz
+# TARGET-FORMAT-COMPRESSION = bz2
 
 # Filter to run while processing documents. Unnecessary for plain text,
 # may be useful for documents with markup.
