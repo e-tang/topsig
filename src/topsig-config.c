@@ -7,6 +7,7 @@
 #include "topsig-config.h"
 #include "topsig-global.h"
 
+#include "topsig-index.h"
 #include "topsig-process.h"
 #include "topsig-stop.h"
 #include "topsig-stem.h"
@@ -22,6 +23,7 @@ void ConfigUpdate()
   Stem_InitCfg();
   Signature_InitCfg();
   Progress_InitCfg();
+  Index_InitCfg();
 }
 
 typedef struct {

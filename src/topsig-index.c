@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include "topsig-index.h"
 #include "topsig-file.h"
 #include "topsig-filerw.h"
 #include "topsig-config.h"
@@ -9,10 +10,20 @@
 #include "topsig-thread.h"
 #include "topsig-signature.h"
 #include "topsig-global.h"
+#include "uthash.h"
 
-#define BUFFER_SIZE (512 * 1024) 
+#define BUFFER_SIZE (512 * 1024)
 
 static char current_archive_path[2048];
+
+typedef struct {
+  char from[256];
+  char to[256];
+  UT_hash_handle hh;
+} docid_mapping;
+
+docid_mapping *docid_mapping_list = NULL;
+docid_mapping *docid_mapping_hash = NULL;
 
 static char *DocumentID(char *path, char *data)
 {
@@ -65,6 +76,18 @@ static char *DocumentID(char *path, char *data)
     fprintf(stderr, "DOCID-FORMAT invalid.\n");
     exit(1);
   }
+  
+  if (docid_mapping_hash) {
+    docid_mapping *lookup;
+    HASH_FIND_STR(docid_mapping_hash, docid, lookup);
+    //printf("Lookup %s...\n", docid);
+    if (lookup) {
+      //printf("%s->%s\n", lookup->from, lookup->to);
+      docid = realloc(docid, strlen(lookup->to)+1);
+      strcpy(docid, lookup->to);
+    }
+  }
+  
   return docid;
 }
 
@@ -365,4 +388,26 @@ void RunIndex()
     }
   }
   Flush_Threaded();
+}
+
+
+void Index_InitCfg()
+{
+  char *C = Config("MEDTRACK-MAPPING-FILE");
+  if (C) {
+    FILE *fp = fopen(C, "r");
+    int records = atoi(Config("MEDTRACK-MAPPING-RECORDS"));
+    docid_mapping_list = malloc(sizeof(docid_mapping) * records);
+    for (int i = 0; i < records; i++) {
+      char from[1024];
+      char to[1024];
+      char dummy[1024];
+      fscanf(fp, "%s %s %s\n", from, dummy, to);
+      docid_mapping *newrecord = docid_mapping_list+i;
+      strcpy(newrecord->from, from);
+      strcpy(newrecord->to, to);
+      HASH_ADD_STR(docid_mapping_hash, from, newrecord);
+    }
+    fclose(fp);
+  }
 }
