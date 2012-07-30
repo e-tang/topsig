@@ -243,4 +243,19 @@ STEMMER = porter
 # stoplist at all
 STOPLIST = data/stopwords.long.txt
 
+#----------------------------------------------------------------------
+# SPECIAL
+#----------------------------------------------------------------------
+# Special arguments are used for dealing with particular collections or
+# problems.
+
+# MEDTRACK-MAPPING-FILE
+# Replaces each document ID with the result from a lookup into a
+# three column mapping file, where the first column is the docid, the
+# second column is ignored and the third column is the string to
+# replace it with. If this is used, MEDTRACK-MAPPING-RECORDS should
+# be set to the number of records (lines) in the file.
+# MEDTRACK-MAPPING-FILE = UnivOfPittReportMappingToVisit.txt
+# MEDTRACK-MAPPING-RECORDS = 101712
+
 #---------------------------------------
