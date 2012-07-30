@@ -306,7 +306,13 @@ void AR_tar(FileHandle *fp)
     }
     filedat[file_size] = '\0';
     char *filename = DocumentID(buffer, filedat);
-    indexfile(filename, filedat);
+    
+    if (strcmp(filename, "NULL")==0) {
+      free(filename);
+      free(filedat);
+    } else {
+      indexfile(filename, filedat);
+    }
   }
 }
 
