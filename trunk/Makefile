@@ -33,6 +33,7 @@ src/topsig-thread.o \
 src/topsig-progress.o \
 src/topsig-semaphore.o \
 src/topsig-stats.o \
+src/topsig-document.o \
 src/ISAAC-rand.o
 
 default:	topsig

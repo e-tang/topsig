@@ -10,6 +10,7 @@
 #include "topsig-thread.h"
 #include "topsig-signature.h"
 #include "topsig-global.h"
+#include "topsig-document.h"
 #include "uthash.h"
 
 #define BUFFER_SIZE (512 * 1024)
@@ -138,7 +139,7 @@ char *getnextfile(char *path)
   return NULL;
 }
 
-void indexfile(char *filename, char *filedat)
+void indexfile(Document *doc)
 {
   static int thread_mode = -1;
   static SignatureCache *signaturecache = NULL;
@@ -155,9 +156,9 @@ void indexfile(char *filename, char *filedat)
     if (signaturecache == NULL) {
       signaturecache = NewSignatureCache(1, 1);
     }
-    ProcessFile(signaturecache, filename, filedat);
+    ProcessFile(signaturecache, doc);
   } else {
-    ProcessFile_Threaded(filename, filedat);
+    ProcessFile_Threaded(doc);
   }
 }
 
@@ -165,6 +166,7 @@ void AR_file(FileHandle *fp)
 {
   int filesize = 0;
   int buffersize = 1024;
+  Document *doc = NewDocument(NULL, NULL);
   
   char *filedat = NULL;  
   
@@ -178,9 +180,11 @@ void AR_file(FileHandle *fp)
   }
   
   filedat[filesize] = '\0';
-  char *docid = DocumentID(current_archive_path, filedat);
+  doc->data = filedat;
+  doc->data_length = filesize;
+  doc->docid = DocumentID(current_archive_path, filedat);
   
-  indexfile(docid, filedat);
+  indexfile(doc);
 }
 
 
@@ -257,9 +261,8 @@ void AR_warc(FileHandle *fp)
     
     warc_erasebuffer(buffer, &buffer_filled, header_size);
     
-    char *filename = malloc(strlen(WARC_TREC_ID) + 1);
-    strcpy(filename, WARC_TREC_ID);
-    char *filedat = malloc(Content_Length + 1);
+    Document *newDoc = NewDocument(WARC_TREC_ID, NULL);
+    newDoc->data = malloc(Content_Length + 1);
     int filedat_size = 0;
     
     while (filedat_size < Content_Length) {
@@ -267,20 +270,19 @@ void AR_warc(FileHandle *fp)
       if (Content_Length - filedat_size < buffer_copy) {
         buffer_copy = Content_Length - filedat_size;
       }
-      memcpy(filedat+filedat_size, buffer, buffer_copy);
+      memcpy(newDoc->data+filedat_size, buffer, buffer_copy);
       warc_erasebuffer(buffer, &buffer_filled, buffer_copy);
       filedat_size += buffer_copy;
       
       eof = warc_fillbuffer(fp, buffer, &buffer_filled);
     }
-    filedat[filedat_size] = '\0';
+    newDoc->data[filedat_size] = '\0';
     
     if (lc_strcmp(WARC_Type, "response")==0) {
       //printf("Index [%s]\n", filename);
-      indexfile(filename, filedat);
+      indexfile(newDoc);
     } else {
-      free(filename);
-      free(filedat);
+      FreeDocument(newDoc);
     }
   }
 }
@@ -306,12 +308,15 @@ void AR_tar(FileHandle *fp)
     }
     filedat[file_size] = '\0';
     char *filename = DocumentID(buffer, filedat);
+    Document *newDoc = NewDocument(NULL, NULL);
+    newDoc->data = filedat;
+    newDoc->data_length = file_size;
+    newDoc->docid = filename;
     
     if (strcmp(filename, "NULL")==0) {
-      free(filename);
-      free(filedat);
+      FreeDocument(newDoc);
     } else {
-      indexfile(filename, filedat);
+      indexfile(newDoc);
     }
   }
 }
@@ -354,7 +359,12 @@ void AR_wsj(FileHandle *fp)
         memcpy(filedat, doc_start, archiveSize);
         filedat[archiveSize] = '\0';
         
-        indexfile(filename, filedat);
+        Document *newDoc = NewDocument(NULL, NULL);
+        newDoc->docid = filename;
+        newDoc->data = filedat;
+        newDoc->data_length = archiveSize;
+        
+        indexfile(newDoc);
                 
         memmove(buf, doc_end, buflen-doclen);
         buflen -= doclen;
