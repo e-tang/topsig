@@ -49,8 +49,8 @@ void ProgressTick(const char *identifier)
   int time_ms = clockval % CLOCKS_PER_SEC / (CLOCKS_PER_SEC / 1000);
   int time_mins = time_secs / 60;
   int dps = 0;
-  if (clockval > 10) {
-    dps = c * (CLOCKS_PER_SEC / 10) / (clockval / 10); // prevent overflow
+  if (clockval > 1000) {
+    dps = c * (CLOCKS_PER_SEC / 1000) / (clockval / 1000); // prevent overflow
   }
   time_secs = time_secs % 60;
   
