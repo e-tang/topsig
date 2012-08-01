@@ -99,6 +99,11 @@ SIGNATURE-WIDTH = 1024
 # half of the bits are set and so on.
 SIGNATURE-DENSITY = 21
 
+# SIGNATURE-SEED - random seed to initialise the random number generator
+# with. Will results in different signatures being generated and hence
+# different results.
+SIGNATURE-SEED = 0
+
 # SIGNATURE-METHOD - method to generate the signature
 # Possible values are:
 #   TRADITIONAL - very slow, baseline approach
