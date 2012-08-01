@@ -47,6 +47,7 @@ struct Signature {
 static struct {
   int length;
   int density;
+  int seed;
   int docnamelen;
   int termcachesize;
   int thread_mode;
@@ -211,7 +212,8 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
     // Seed the random number generator with the term used
     randctx R;
     memset(R.randrsl, 0, sizeof(R.randrsl));
-    strcpy((char *)(R.randrsl), term);
+    strcpy((char *)(R.randrsl + 1), term);
+    mem_write32(cfg.seed, (unsigned char *)(R.randrsl));
     randinit(&R, TRUE);
     
     switch (cfg.method) {
@@ -325,11 +327,12 @@ static void initcache()
   // int sig-density
   // char[64] sig-method (null-terminated)
   
-  int header_size = 5 * 4 + 64;
-  int version = 1;
+  int header_size = 6 * 4 + 64;
+  int version = 2;
   int maxnamelen = cfg.docnamelen;
   int sig_width = cfg.length;
   int sig_density = cfg.density;
+  int sig_seed = cfg.seed;
   char sig_method[64] = {0};
   
   strncpy(sig_method, Config("SIGNATURE-METHOD"), 64);
@@ -339,6 +342,7 @@ static void initcache()
   file_write32(maxnamelen, cache.fp);
   file_write32(sig_width, cache.fp);
   file_write32(sig_density, cache.fp);
+  file_write32(sig_seed, cache.fp);
   fwrite(sig_method, 1, 64, cache.fp);
 }
 
@@ -427,6 +431,12 @@ void Signature_InitCfg()
     exit(1);
   }
   cfg.density = atoi(C);
+  
+  cfg.seed = 0;
+  C = Config("SIGNATURE-SEED");
+  if (C) {
+    cfg.seed = atoi(C);
+  }
   
   C = Config("MAX-DOCNAME-LENGTH");
   if (C == NULL) {

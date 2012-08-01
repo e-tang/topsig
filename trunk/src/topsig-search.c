@@ -26,6 +26,7 @@ struct Search {
     int density;
     int docnamelen;
     int headersize;
+    int seed;
     
     int charmask[256];
     
@@ -95,10 +96,14 @@ Search *InitSearch()
   // Read config info
   
   S->cfg.headersize = file_read32(S->sig); // header-size
-  file_read32(S->sig); // version
+  int version = file_read32(S->sig); // version
   S->cfg.docnamelen = file_read32(S->sig); // maxnamelen
   S->cfg.length = file_read32(S->sig); // sig_width
   S->cfg.density = file_read32(S->sig); // sig_density
+  S->cfg.seed = 0;
+  if (version >= 2) {
+    S->cfg.seed = file_read32(S->sig); // sig_seed
+  }
   fread(S->cfg.method, 1, 64, S->sig); // sig_method
   
   // Override the config file settings with the new values
@@ -109,6 +114,9 @@ Search *InitSearch()
   
   sprintf(buf, "%d", S->cfg.density);
   ConfigOverride("SIGNATURE-DENSITY", buf);
+  
+  sprintf(buf, "%d", S->cfg.seed);
+  ConfigOverride("SIGNATURE-SEED", buf);
   
   sprintf(buf, "%d", S->cfg.docnamelen);
   ConfigOverride("MAX-DOCNAME-LENGTH", buf);
