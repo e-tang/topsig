@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "topsig-config.h"
 #include "topsig-search.h"
 #include "topsig-global.h"
@@ -38,7 +39,8 @@ struct Search {
 struct Result {
   char *docid;
   unsigned char *signature;
-  double score;
+  int dist;
+  int qual;
 };
 
 struct Results {
@@ -159,7 +161,7 @@ static Signature *create_query_signature(Search *S, const char *query)
   return sig;
 }
 
-static double calculate_document_score(Search *S, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig)
+static int get_document_dist(Search *S, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig)
 {
   unsigned int c = 0;
   if ((sizeof(unsigned long int) == 8) && (S->cfg.length % 64 == 0)) {
@@ -195,8 +197,14 @@ static double calculate_document_score(Search *S, unsigned char *bsig, unsigned 
     exit(1);
   }
   
-  double score = 1000.0 - (double)(c) * 1000.0 / (double)(S->cfg.length);
-  return score;
+  double dist = c;
+  return dist;
+}
+
+static int get_document_quality(Search *S, unsigned char *signature_header_vals)
+{
+  // the 'quality' field is the 4th field in the header
+  return mem_read32(signature_header_vals + (3 * 4));
 }
 
 int result_compar(const void *a, const void *b)
@@ -205,8 +213,10 @@ int result_compar(const void *a, const void *b)
   A = a;
   B = b;
   
-  if (A->score < B->score) return 1;
-  if (A->score > B->score) return -1;
+  if (A->dist > B->dist) return 1;
+  if (A->dist < B->dist) return -1;
+  if (A->qual < B->qual) return 1;
+  if (A->qual > B->qual) return -1;
   return 0;
 }
 
@@ -232,7 +242,7 @@ void ApplyBlindFeedback(Search *S, Results *R, int sample)
   FlattenSignature(sig, bsig, bmask);
     
   for (int i = 0; i < R->k; i++) {
-    R->res[i].score = calculate_document_score(S, bsig, bmask, R->res[i].signature);
+    R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
   }
   qsort(R->res, R->k, sizeof(R->res[0]), result_compar);
 
@@ -270,7 +280,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
   for (int i = 0; i < topk; i++) {
     R->res[i].docid = malloc(S->cfg.docnamelen + 1);
     R->res[i].signature = malloc(S->cfg.length / 8);
-    R->res[i].score = -1.0;
+    R->res[i].dist = INT_MAX;
     R->res[i].docid[0] = '_';
     R->res[i].docid[1] = '\0';
   }
@@ -282,41 +292,45 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
   size_t sig_offset = sig_record_size;
   sig_record_size += S->cfg.length / 8;
   
-  volatile int last_lowest_set = 0;
-    
-  double last_lowest = -3.0;
+  int last_lowest_dist = INT_MAX;
+  int last_lowest_qual = -1;
   int i;
   for (i = start; i < start+count; i++) {
+    unsigned char *signature_header = S->cache + sig_record_size * i;
+    unsigned char *signature_header_vals = signature_header + S->cfg.docnamelen + 1;
     unsigned char *signature = S->cache + sig_record_size * i + sig_offset;
     
-    double score = calculate_document_score(S, bsig, bmask, signature);
+    int dist = get_document_dist(S, bsig, bmask, signature);
+    int qual = get_document_quality(S, signature_header_vals);
     
-    const char *docid = (const char *)(S->cache + sig_record_size * i + docid_offset);
+    const char *docid = (const char *)(signature_header + docid_offset);
     
     int lowest_j = 0;
     int duplicate_found = -1;
-    if (score > last_lowest) {
+    if ((dist < last_lowest_dist) || ((dist == last_lowest_dist) && (qual > last_lowest_qual))) {
       for (int j = 0; j < topk; j++) {
         if (strncmp(R->res[j].docid, docid, S->cfg.docnamelen) == 0) {
           duplicate_found = j;
           break;
         }
-        if (R->res[j].score < R->res[lowest_j].score) {
-          last_lowest = R->res[j].score;
-          last_lowest_set++;
+        if (result_compar(&R->res[j], &R->res[lowest_j])==1) {
+          last_lowest_dist = R->res[j].dist;
+          last_lowest_qual = R->res[j].qual;
           lowest_j = j;
         }
       }
     }
     if (duplicate_found == -1) {
-      if (score > R->res[lowest_j].score) {
-        R->res[lowest_j].score = score;
+      if ((dist < R->res[lowest_j].dist) || ((dist == R->res[lowest_j].dist) && (qual > R->res[lowest_j].qual))) {
+        R->res[lowest_j].dist = dist;
+        R->res[lowest_j].qual = qual;
         strncpy(R->res[lowest_j].docid, docid, S->cfg.docnamelen + 1);
         memcpy(R->res[lowest_j].signature, signature, S->cfg.length / 8);
       }
     } else {
-      if (score > R->res[duplicate_found].score) {
-        R->res[duplicate_found].score = score;
+      if ((dist < R->res[duplicate_found].dist) || ((dist == R->res[duplicate_found].dist) && (qual > R->res[duplicate_found].qual))) {
+        R->res[duplicate_found].dist = dist;
+        R->res[duplicate_found].qual = qual;
       }
     }
   }
@@ -409,7 +423,7 @@ Results *SearchCollectionQuery(Search *S, const char *query, const int topk)
 void PrintResults(Results *R, int k)
 {
   for (int i = 0; i < k; i++) {
-    printf("%d. %s (%.6f)\n", i+1, R->res[i].docid, R->res[i].score);
+    printf("%d. %s (%.6f)\n", i+1, R->res[i].docid, R->res[i].dist);
   }
 }
 
