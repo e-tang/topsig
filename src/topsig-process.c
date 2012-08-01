@@ -11,6 +11,7 @@
 #include "topsig-global.h"
 #include "topsig-thread.h"
 #include "topsig-progress.h"
+#include "topsig-document.h"
 
 // All code here should be sufficiently thread safe and reentrant as it
 // may be run in multiple threads. This applies to all called code too.
@@ -25,10 +26,6 @@ static struct {
   } split;
   enum {FILTER_NONE, FILTER_XML} filter;
 } cfg;
-
-typedef struct {
-  int len;
-} docinfo;
 
 typedef struct {
   char term[TERM_MAX_LEN+1];
@@ -66,22 +63,22 @@ static docterm *addterm(docterm *termlist, char *term, int termlen, int *docterm
 }
 
 // Create signature from the given document term set, then free it
-static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, char *id, docinfo *info)
+static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc, Document *doc)
 {
   // To ensure that signatures too small are not output, this uses
   // a delayed write mechanism that only outputs the previous
   // set of documents, merging the previous and the current
   // set if conditions are met.
   
-  // For thread safety, the caller has to track doc and lastdoc.
-  // This function returns 'doc' normally, or NULL in the case of
+  // For thread safety, the caller has to track currdoc and lastdoc.
+  // This function returns 'currdoc' normally, or NULL in the case of
   // a merge.
   
-  if (lastdoc == NULL) return doc;
+  if (lastdoc == NULL) return currdoc;
     
   int merge = 0;
   if (HASH_COUNT(lastdoc) < cfg.split.min) {
-    if (HASH_COUNT(lastdoc) + HASH_COUNT(doc) < cfg.split.max) {
+    if (HASH_COUNT(lastdoc) + HASH_COUNT(currdoc) < cfg.split.max) {
       merge = 1;
     }
   }
@@ -89,7 +86,7 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
   // Definitely output all of lastdoc- these must be part of the
   // written signature
   
-  Signature *sig = NewSignature(id);
+  Signature *sig = NewSignature(doc->docid);
     
   docterm *curr, *tmp;
   
@@ -106,44 +103,41 @@ static docterm *createsig(SignatureCache *C, docterm *doc, docterm *lastdoc, cha
     free(curr);
   }
   if (merge) {
-    HASH_ITER(hh, doc, curr, tmp) {
+    HASH_ITER(hh, currdoc, curr, tmp) {
       unique_terms += 1;
       total_terms += curr->count;
     }
-    HASH_ITER(hh, doc, curr, tmp) {
+    HASH_ITER(hh, currdoc, curr, tmp) {
       SignatureAdd(C, sig, curr->term, curr->count, total_terms);
-      HASH_DEL(doc, curr);
+      HASH_DEL(currdoc, curr);
       free(curr);
     }
-    doc = NULL;
+    currdoc = NULL;
   }
   
-  SignatureSetValues(sig, unique_terms, info->len, total_terms, 0, 0, 0, 0, 0);
-  SignatureWrite(C, sig, id);
-  return doc;
+  SignatureSetValues(sig, unique_terms, doc->data_length, total_terms, 0, 0, 0, 0, 0);
+  SignatureWrite(C, sig, doc->docid);
+  return currdoc;
 }
 
 
 // Process the supplied file, then free both strings when done
-void ProcessFile(SignatureCache *C, char *identifier, char *filedat)
+void ProcessFile(SignatureCache *C, Document *doc)
 {
   char cterm[1024];
   int cterm_len = 0;
-  docinfo info;
   
-  ProgressTick(identifier);
+  ProgressTick(doc->docid);
 
-  docterm *doc = NULL;
+  docterm *currdoc = NULL;
   docterm *lastdoc = NULL;
   int docterms = 0;
-  
-  info.len = strlen(filedat);
-  
+    
   // XML filter vars
   int xml_inelement = 0;
   int xml_intag = 0;
   
-  for (char *p = filedat; *p != '\0'; p++) {
+  for (char *p = doc->data; *p != '\0'; p++) {
     int filterok = 1;
     switch (cfg.filter) {
       case FILTER_NONE:
@@ -160,7 +154,6 @@ void ProcessFile(SignatureCache *C, char *identifier, char *filedat)
           xml_intag = 0;
           filterok = 0;
         }
-        //printf("%d %d\n", xml_intag, xml_inelement);
         if (xml_intag || xml_inelement) filterok = 0;
         break;
     }
@@ -173,7 +166,7 @@ void ProcessFile(SignatureCache *C, char *identifier, char *filedat)
       cterm[cterm_len] = '\0';
       if (cterm_len > 0) {
         if (cterm_len <= TERM_MAX_LEN) {
-          doc=addterm(doc, cterm, cterm_len, &docterms);
+          currdoc=addterm(currdoc, cterm, cterm_len, &docterms);
           cterm_len = 0;
         } else {
           // Reset the term length value but don't add the term. We could
@@ -184,29 +177,28 @@ void ProcessFile(SignatureCache *C, char *identifier, char *filedat)
     }
     if ((*p == '.') && (cfg.split.type == SPLIT_SENTENCE) && (docterms >= cfg.split.min)) {
       // Sentence split
-      doc = createsig(C, doc, lastdoc, identifier, &info);
-      lastdoc = doc;
+      currdoc = createsig(C, currdoc, lastdoc, doc);
+      lastdoc = currdoc;
       docterms = 0;
-      doc = NULL;
+      currdoc = NULL;
     }
     if ((cfg.split.type != SPLIT_NONE) && (docterms >= cfg.split.max)) {
-      doc = createsig(C, doc, lastdoc, identifier, &info);
-      lastdoc = doc;
+      currdoc = createsig(C, currdoc, lastdoc, doc);
+      lastdoc = currdoc;
       docterms = 0;
-      doc = NULL;
+      currdoc = NULL;
     }
   }
   if (cterm_len > 0) {
-    doc=addterm(doc, cterm, cterm_len, &docterms);
+    currdoc=addterm(currdoc, cterm, cterm_len, &docterms);
     cterm_len = 0;
   }
-  createsig(C, doc, lastdoc, identifier, &info);
-  createsig(C, NULL, doc, identifier, &info);
+  createsig(C, currdoc, lastdoc, doc);
+  createsig(C, NULL, currdoc, doc);
   docterms = 0;
-  doc = NULL;
+  currdoc = NULL;
   lastdoc = NULL;
-  free(identifier);
-  free(filedat);
+  FreeDocument(doc);
   //printf("ProcessFile() out\n");fflush(stdout);
 }
 

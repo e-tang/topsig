@@ -53,6 +53,7 @@ void CallOnce(void (*func)())
 #include "topsig-search.h"
 #include "topsig-signature.h"
 #include "topsig-semaphore.h"
+#include "topsig-document.h"
 
 #define JOB_POOL 512
 
@@ -62,8 +63,7 @@ TSemaphore sem_job_avail[JOB_POOL];
 struct thread_job {
   enum {EMPTY, READY, TAKEN} state;
   int owner;
-  char *filename;
-  char *filedat;
+  Document *doc;
 };
 
 volatile int jobs_start = -1;
@@ -98,7 +98,6 @@ void *start_work(void *sigcache_ptr)
 {
   SignatureCache *C = sigcache_ptr;
   int threadID = atomic_add(&threads_running, 1);
-  char threadID_s[4];
   
   for (;;) {
     tsem_wait(&sem_jobs_ready);
@@ -108,7 +107,7 @@ void *start_work(void *sigcache_ptr)
 
     jobs[currjob].state = TAKEN;
     jobs[currjob].owner = threadID;
-    ProcessFile(C, jobs[currjob].filename, jobs[currjob].filedat);
+    ProcessFile(C, jobs[currjob].doc);
     
     jobs[currjob].state = EMPTY;
   
@@ -124,7 +123,7 @@ void *start_work(void *sigcache_ptr)
   return NULL;
 }
 
-void ProcessFile_Threaded(char *arg_filename, char *arg_filedat)
+void ProcessFile_Threaded(Document *doc)
 {
   if (jobs_start == -1) {
     threads_running = 0;
@@ -156,8 +155,7 @@ void ProcessFile_Threaded(char *arg_filename, char *arg_filedat)
 
   tsem_wait(&sem_job_avail[currjob]);
 
-  jobs[currjob].filename = arg_filename;
-  jobs[currjob].filedat = arg_filedat;
+  jobs[currjob].doc = doc;
   jobs[currjob].state = READY;
 
   atomic_add(&current_jobs, 1);
@@ -241,24 +239,4 @@ Results *FindHighestScoring_Threaded(Search *S, const int start, const int count
     }
   }
   return R;
-}
-
-struct {
-  void (*func)(void);
-  pthread_once_t control;
-} CallOnce_list[CALLONCE_BUFFER];
-
-void CallOnce(void (*func)(void))
-{
-  for (int i = 0; i < CALLONCE_BUFFER; i++) {
-    if (CallOnce_list[i].func == func) {
-      pthread_once(&CallOnce_list[i].control, CallOnce_list[i].func);
-      return;
-    }
-    if (CallOnce_list[i].func == NULL) {
-      CallOnce_list[i].func = func;
-      pthread_once(&CallOnce_list[i].control, CallOnce_list[i].func);
-      return;
-    }
-  }
 }
