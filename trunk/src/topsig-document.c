@@ -16,6 +16,8 @@ Document *NewDocument(const char *docid, const char *data)
   newDoc->docid = NULL;
   newDoc->data = NULL;
   newDoc->data_length = 0;
+  newDoc->stats.total_terms = 0;
+  newDoc->stats.unique_terms = 0;
   newDoc->p = p;
   
   if (docid) {
@@ -38,4 +40,9 @@ void FreeDocument(Document *doc)
   if (doc->docid) free(doc->docid);
   if (doc->data) free(doc->data);
   free(doc);
+}
+
+int DocumentQuality(const Document *doc)
+{
+  return doc->data_length;
 }
