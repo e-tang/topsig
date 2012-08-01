@@ -13,9 +13,11 @@ typedef struct {
   unsigned int freq_terms;
   UT_hash_handle hh;
 } StatTerm;
-static int total_terms;
+int total_terms;
+
 static StatTerm *termtable = NULL;
 static StatTerm *termlist = NULL;
+
 
 int TermFrequencyStats(const char *term)
 {
@@ -30,6 +32,7 @@ int TermFrequencyStats(const char *term)
 
 void Stats_InitCfg()
 {
+  if (termlist) return;
   total_terms = 0;
   char *termstats_path = Config("TERMSTATS-PATH");
   if (termstats_path) {

@@ -184,7 +184,7 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
       tcf = count;
     }
   
-    logLikelihood = log((double) count / (double) total_count * (double) 643458198.0 / (double) tcf);
+    logLikelihood = log((double) count / (double) total_count * (double) total_terms / (double) tcf);
     if (logLikelihood > 0) {
       weight = logLikelihood * count * 1000.0;
     }
