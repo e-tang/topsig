@@ -181,7 +181,7 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
     if (termStats) {
       tcf = termStats;
     } else {
-      tcf=1;
+      tcf = count;
     }
   
     logLikelihood = log((double) count / (double) total_count * (double) 643458198.0 / (double) tcf);
