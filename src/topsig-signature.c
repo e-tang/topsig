@@ -35,7 +35,7 @@ struct Signature {
   int unique_terms;
   int document_char_length;
   int total_terms;
-  int unused_4;
+  int quality;
   int unused_5;
   int unused_6;
   int unused_7;
@@ -152,15 +152,15 @@ void FlattenSignature(Signature *sig, void *bsig, void *bmask)
   }
 }
 
-void SignatureSetValues(Signature *sig, int unique_terms, int document_char_length, int total_terms, int unused_4, int unused_5, int unused_6, int unused_7, int unused_8) {
-  sig->unique_terms = unique_terms;
-  sig->document_char_length = document_char_length;
-  sig->total_terms = total_terms;
-  sig->unused_4 = unused_4;
-  sig->unused_5 = unused_5;
-  sig->unused_6 = unused_6;
-  sig->unused_7 = unused_7;
-  sig->unused_8 = unused_8;
+void SignatureSetValues(Signature *sig, Document *doc) {
+  sig->unique_terms = doc->stats.unique_terms;
+  sig->document_char_length = doc->data_length;
+  sig->total_terms = doc->stats.total_terms;
+  sig->quality = DocumentQuality(doc);
+  sig->unused_5 = 0;
+  sig->unused_6 = 0;
+  sig->unused_7 = 0;
+  sig->unused_8 = 0;
 }
 
 // Forward declarations for signature methods
@@ -351,7 +351,7 @@ static void dumpsignature(Signature *sig)
   //int unique_terms;
   //int document_char_length;
   //int total_terms;
-  //int unused_4;
+  //int quality;
   //int unused_5;
   //int unused_6;
   //int unused_7;
@@ -372,7 +372,7 @@ static void dumpsignature(Signature *sig)
   file_write32(sig->unique_terms, cache.fp);
   file_write32(sig->document_char_length, cache.fp);
   file_write32(sig->total_terms, cache.fp);
-  file_write32(sig->unused_4, cache.fp);
+  file_write32(sig->quality, cache.fp);
   file_write32(sig->unused_5, cache.fp);
   file_write32(sig->unused_6, cache.fp);
   file_write32(sig->unused_7, cache.fp);

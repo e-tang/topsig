@@ -115,7 +115,10 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
     currdoc = NULL;
   }
   
-  SignatureSetValues(sig, unique_terms, doc->data_length, total_terms, 0, 0, 0, 0, 0);
+  doc->stats.unique_terms = unique_terms;
+  doc->stats.total_terms = total_terms;
+  
+  SignatureSetValues(sig, doc);
   SignatureWrite(C, sig, doc->docid);
   return currdoc;
 }
