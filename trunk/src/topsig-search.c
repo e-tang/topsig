@@ -230,32 +230,33 @@ int result_compar(const void *a, const void *b)
 
 void ApplyBlindFeedback(Search *S, Results *R, int sample)
 {
-  double dsig[S->cfg.length];
-  memset(&dsig, 0, S->cfg.length * sizeof(double));
-  double sample_2 = ((double)sample) / 2.0;
-  
-  for (int i = 0; i < sample; i++) {
-    double di = i;
-    for (int j = 0; j < S->cfg.length; j++) {
-      dsig[j] += exp(-di*di/sample_2) * ((R->res[i].signature[j/8] & (1 << (7 - (j%8))))>0?1.0:-1.0); 
-    }
-  }
-  
-  Signature *sig = NewSignature("query");
-  SignatureFillDoubles(sig, dsig);
-  
-  unsigned char bsig[S->cfg.length / 8];
-  unsigned char bmask[S->cfg.length / 8];
-  
-  FlattenSignature(sig, bsig, bmask);
+    double dsig[S->cfg.length];
+    memset(&dsig, 0, S->cfg.length * sizeof(double));
+    double sample_2 = ((double)sample) * 8;
     
-  for (int i = 0; i < R->k; i++) {
-    R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
-  }
-  qsort(R->res, R->k, sizeof(R->res[0]), result_compar);
-
-  SignatureDestroy(sig);
+    for (int i = 0; i < sample; i++) {
+        double di = i;
+        for (int j = 0; j < S->cfg.length; j++) {
+            dsig[j] += exp(-di*di/sample_2) * ((R->res[i].signature[j/8] & (1 << (7 - (j%8))))>0?1.0:-1.0); 
+        }
+    }
+    
+    Signature *sig = NewSignature("query");
+    SignatureFillDoubles(sig, dsig);
+    
+    unsigned char bsig[S->cfg.length / 8];
+    unsigned char bmask[S->cfg.length / 8];
+    
+    FlattenSignature(sig, bsig, bmask);
+    
+    for (int i = 0; i < R->k; i++) {
+        R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
+    }
+    qsort(R->res, R->k, sizeof(R->res[0]), result_compar);
+    
+    SignatureDestroy(sig);    
 }
+
 
 void MergeResults(Results *base, Results *add)
 {

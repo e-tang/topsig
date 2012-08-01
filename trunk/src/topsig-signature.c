@@ -172,7 +172,7 @@ static void sig_SKIP_add(int *, randctx *);
 
 void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
 {
-  int weight = count;
+  int weight = 0;//count
   
   int termStats = TermFrequencyStats(term);
   if (termStats != -1) {
@@ -186,8 +186,11 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
     }
   
     logLikelihood = log((double) count / (double) total_count * (double) total_terms / (double) tcf);
+//      printf("LL=%lf, count=%d, total_count=%d, total_term=%d, tcf=%d\n",logLikelihood,count,total_count,total_terms,tcf);
     if (logLikelihood > 0) {
-      weight = logLikelihood * count * 1000.0;
+      weight = logLikelihood * (count-0.9) * 1000.0;
+    } else {
+//        return;
     }
   }
   
