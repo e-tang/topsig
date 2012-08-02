@@ -10,6 +10,7 @@
 #include "topsig-stem.h"
 #include "topsig-stop.h"
 #include "topsig-thread.h"
+#include "superfasthash.h"
 
 struct Search {
   FILE *sig;
@@ -39,6 +40,7 @@ struct Search {
 
 struct Result {
   char *docid;
+  unsigned int docid_hash;
   unsigned char *signature;
   int dist;
   int qual;
@@ -267,6 +269,20 @@ void MergeResults(Results *base, Results *add)
   for (int i = 0; i < add->k; i++) {
     res[i+base->k] = add->res[i];
   }
+  
+  for (int i = 0; i < base->k + add->k; i++) {
+    for (int j = i + 1; j < base->k + add->k; j++) {
+      if (res[j].docid_hash == res[i].docid_hash && strcmp(res[j].docid, res[i].docid) == 0) {
+        // Punish the lowest ranker to reduce its position in the merged set
+        if ((res[i].dist < res[j].dist) || (res[i].dist == res[j].dist && res[i].qual > res[j].qual)) {
+          res[j].dist = INT_MAX;
+        } else {
+          res[i].dist = INT_MAX;
+        }
+      }
+    }
+  }
+  
   qsort(res, base->k + add->k, sizeof(res[0]), result_compar);
   
   for (int i = base->k; i < base->k + add->k; i++) {
@@ -299,7 +315,8 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
   sig_record_size += 8 * 4; // 8 32-bit ints
   size_t docid_offset = 0;
   size_t sig_offset = sig_record_size;
-  sig_record_size += S->cfg.length / 8;
+  int sig_length_bytes = S->cfg.length / 8;
+  sig_record_size += sig_length_bytes;
   
   int last_lowest_dist = INT_MAX;
   int last_lowest_qual = -1;
@@ -313,12 +330,13 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
     int qual = get_document_quality(S, signature_header_vals);
     
     const char *docid = (const char *)(signature_header + docid_offset);
+    unsigned int docid_hash = SuperFastHash(docid, strlen(docid));
     
     int lowest_j = 0;
     int duplicate_found = -1;
     if ((dist < last_lowest_dist) || ((dist == last_lowest_dist) && (qual > last_lowest_qual))) {
       for (int j = 0; j < topk; j++) {
-        if (strncmp(R->res[j].docid, docid, S->cfg.docnamelen) == 0) {
+        if (R->res[j].docid_hash == docid_hash && strncmp(R->res[j].docid, docid, S->cfg.docnamelen) == 0) {
           duplicate_found = j;
           break;
         }
@@ -331,6 +349,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
     }
     if (duplicate_found == -1) {
       if ((dist < R->res[lowest_j].dist) || ((dist == R->res[lowest_j].dist) && (qual > R->res[lowest_j].qual))) {
+        R->res[lowest_j].docid_hash = docid_hash;
         R->res[lowest_j].dist = dist;
         R->res[lowest_j].qual = qual;
         strncpy(R->res[lowest_j].docid, docid, S->cfg.docnamelen + 1);
@@ -338,6 +357,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
       }
     } else {
       if ((dist < R->res[duplicate_found].dist) || ((dist == R->res[duplicate_found].dist) && (qual > R->res[duplicate_found].qual))) {
+        R->res[duplicate_found].docid_hash = docid_hash;
         R->res[duplicate_found].dist = dist;
         R->res[duplicate_found].qual = qual;
       }
