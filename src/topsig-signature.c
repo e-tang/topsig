@@ -172,7 +172,7 @@ static void sig_SKIP_add(int *, randctx *);
 
 void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
 {
-  int weight = 0;//count
+  int weight = count;
   
   int termStats = TermFrequencyStats(term);
   if (termStats != -1) {
