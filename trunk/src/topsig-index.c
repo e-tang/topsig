@@ -223,7 +223,7 @@ void AR_warc(FileHandle *fp)
   
   while (!(eof && (buffer_filled == 0))) {
     eof = warc_fillbuffer(fp, buffer, &buffer_filled);
-    char *header_end = strstr(buffer, "\n\n");
+    char *header_end = strstr(strstr(buffer, "Content-Length:"), "\n\n");
     if (header_end == NULL) {
       fprintf(stderr, "WARC format error\n");
       exit(1);
