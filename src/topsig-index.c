@@ -188,7 +188,7 @@ void AR_file(FileHandle *fp)
 }
 
 
-#define WARC_BUFFER 4096
+#define WARC_BUFFER 65536
 int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
   int bspace = WARC_BUFFER - *buffer_filled;
   int eof = 0;
@@ -246,14 +246,14 @@ void AR_warc(FileHandle *fp)
     if (pos) {
       sscanf(pos, "%s %s", fieldname, WARC_Type);
     } else {
-      fprintf(stderr, "WARC format error\n");
+      fprintf(stderr, "WARC format error B\n");
       exit(1);
     }
     pos = strstr(header, "Content-Length:");
     if (pos) {
       sscanf(pos, "%s %d", fieldname, &Content_Length);
     } else {
-      fprintf(stderr, "WARC format error\n");
+      fprintf(stderr, "WARC format error C\n");
       exit(1);
     }
     
@@ -282,8 +282,7 @@ void AR_warc(FileHandle *fp)
     newDoc->data[filedat_size] = '\0';
     
     if (lc_strcmp(WARC_Type, "response")==0) {
-      //printf("Index [%s]\n", filename);
-
+      //printf("Index [%s]\n", newDoc->docid);
       indexfile(newDoc);
     } else {
       FreeDocument(newDoc);
