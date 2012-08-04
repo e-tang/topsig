@@ -193,6 +193,9 @@ int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
   int bspace = WARC_BUFFER - *buffer_filled;
   int eof = 0;
   int octets_read = file_read(buffer + *buffer_filled, bspace, fp);
+  for (int i = 0; i < octets_read; i++) {
+    if (buffer[*buffer_filled+i] == '\0') buffer[*buffer_filled+i] = '_';
+  }
   if (octets_read < bspace) {
     eof = 1;
   }
@@ -280,6 +283,7 @@ void AR_warc(FileHandle *fp)
     
     if (lc_strcmp(WARC_Type, "response")==0) {
       //printf("Index [%s]\n", filename);
+
       indexfile(newDoc);
     } else {
       FreeDocument(newDoc);
