@@ -413,19 +413,33 @@ void RunIndex()
 void Index_InitCfg()
 {
   char *C = Config("MEDTRACK-MAPPING-FILE");
+  char *T = Config("MEDTRACK-MAPPING-TYPE");
   if (C) {
     FILE *fp = fopen(C, "r");
     int records = atoi(Config("MEDTRACK-MAPPING-RECORDS"));
     docid_mapping_list = malloc(sizeof(docid_mapping) * records);
+    int recordnum = 0;
     for (int i = 0; i < records; i++) {
       char from[1024];
       char to[1024];
-      char dummy[1024];
-      fscanf(fp, "%s %s %s\n", from, dummy, to);
-      docid_mapping *newrecord = docid_mapping_list+i;
+      char rectype[1024];
+      fscanf(fp, "%s %s %s\n", from, rectype, to);
+      
+      int process_record = 1;
+      if (T && strstr(T, rectype)==NULL) {
+        process_record = 0;
+      }
+      
+      docid_mapping *newrecord = docid_mapping_list+recordnum;
       strcpy(newrecord->from, from);
-      strcpy(newrecord->to, to);
+      if (process_record) {
+        strcpy(newrecord->to, to);
+      } else {
+        strcpy(newrecord->to, "NULL");
+      }
       HASH_ADD_STR(docid_mapping_hash, from, newrecord);
+      recordnum++;
+
     }
     fclose(fp);
   }
