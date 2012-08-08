@@ -44,5 +44,5 @@ void FreeDocument(Document *doc)
 
 int DocumentQuality(const Document *doc)
 {
-  return doc->stats.unique_terms;
+  return doc->data_length;
 }

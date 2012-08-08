@@ -227,7 +227,9 @@ int result_compar(const void *a, const void *b)
   if (A->dist < B->dist) return -1;
   if (A->qual < B->qual) return 1;
   if (A->qual > B->qual) return -1;
-  return 0;
+  return strcmp(A->docid, B->docid);
+  //if (A->qual > B->qual) return -1;
+  //return 0;
 }
 
 void ApplyBlindFeedback(Search *S, Results *R, int sample)
@@ -251,10 +253,12 @@ void ApplyBlindFeedback(Search *S, Results *R, int sample)
     
     FlattenSignature(sig, bsig, bmask);
     
-    for (int i = 0; i < R->k; i++) {
+    int rerank_k = atoi(Config("PSEUDO-FEEDBACK-RERANK"));
+    
+    for (int i = 0; i < rerank_k; i++) {
         R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
     }
-    qsort(R->res, R->k, sizeof(R->res[0]), result_compar);
+    qsort(R->res, rerank_k, sizeof(R->res[0]), result_compar);
     
     SignatureDestroy(sig);    
 }
@@ -340,7 +344,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
           duplicate_found = j;
           break;
         }
-        if (result_compar(&R->res[j], &R->res[lowest_j])==1) {
+        if (j != lowest_j && result_compar(&R->res[j], &R->res[lowest_j])==1) {
           last_lowest_dist = R->res[j].dist;
           last_lowest_qual = R->res[j].qual;
           lowest_j = j;

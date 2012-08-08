@@ -7,6 +7,7 @@
 #include "topsig-config.h"
 #include "topsig-stem.h"
 #include "topsig-stop.h"
+#include "topsig-stats.h"
 #include "topsig-signature.h"
 #include "topsig-global.h"
 #include "topsig-thread.h"

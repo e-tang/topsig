@@ -139,10 +139,12 @@ TERM-CACHE-SIZE = 65536
 SIGNATURE-CACHE-SIZE = 128
 
 # PSEUDO-FEEDBACK-SAMPLE - top N results to use as pseudo feedback for
-# searching. The top-k results are resorted with feedback applied, so
-# the value of QUERY-TOP-K (in query mode) and TOPIC-OUTPUT-K may
-# influence results. Set to 0 to disable pseudo feedback.
+# searching. Set to 0 to disable pseudo feedback.
 PSEUDO-FEEDBACK-SAMPLE = 3
+# PSEUDO-FEEDBACK-RERANK - top N results are reranked with pseudo
+# feedback. This should be less than or equal to QUERY-TOP-K or
+# TOPIC-OUTPUT-K
+PSEUDO-FEEDBACK-RERANK = 100
 
 # QUERY-TEXT - text of the query to use in query mode.
 # QUERY-TEXT = the quick brown fox
