@@ -5,7 +5,7 @@
 #include "topsig-query.h"
 #include "topsig-topic.h"
 
-void usage();
+static void usage();
 
 int main(int argc, const char **argv)
 {
@@ -34,17 +34,23 @@ int main(int argc, const char **argv)
     return 0;
   }
   
+  if (strcmp(argv[1], "termstats")==0) {
+    RunTermStats();
+    return 0;
+  }
+  
   usage();
   return 0;
 }
 
-void usage()
+static void usage()
 {
   fprintf(stderr, "Usage: ./topsig [mode] {options}\n");
   fprintf(stderr, "Valid options for [mode] are:\n");
   fprintf(stderr, "  index\n");
   fprintf(stderr, "  query\n");
-  fprintf(stderr, "  topic\n\n");
+  fprintf(stderr, "  topic\n");
+  fprintf(stderr, "  termstats\n\n");
   fprintf(stderr, "Configuration information is by default read from\n");
   fprintf(stderr, "config.txt in the current working directory.\n");
   fprintf(stderr, "Additional configuration files can be added through\n");

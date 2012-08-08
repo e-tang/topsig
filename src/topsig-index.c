@@ -9,6 +9,7 @@
 #include "topsig-process.h"
 #include "topsig-thread.h"
 #include "topsig-signature.h"
+#include "topsig-stats.h"
 #include "topsig-global.h"
 #include "topsig-document.h"
 #include "uthash.h"
@@ -93,7 +94,7 @@ static char *DocumentID(char *path, char *data)
 }
 
 // Get the next file pointed to
-char *getnextfile(char *path)
+static char *getnextfile(char *path)
 {
   // In the configuration, both files and directories can be specified.
   static int cfg_pos = 0;
@@ -139,7 +140,7 @@ char *getnextfile(char *path)
   return NULL;
 }
 
-void indexfile(Document *doc)
+static void indexfile(Document *doc)
 {
   static int thread_mode = -1;
   static SignatureCache *signaturecache = NULL;
@@ -162,7 +163,7 @@ void indexfile(Document *doc)
   }
 }
 
-void AR_file(FileHandle *fp)
+static void AR_file(FileHandle *fp, void (*processfile)(Document *))
 {
   int filesize = 0;
   int buffersize = 1024;
@@ -184,12 +185,12 @@ void AR_file(FileHandle *fp)
   doc->data_length = filesize;
   doc->docid = DocumentID(current_archive_path, filedat);
   
-  indexfile(doc);
+  processfile(doc);
 }
 
 
 #define WARC_BUFFER 65536
-int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
+static int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
   int bspace = WARC_BUFFER - *buffer_filled;
   int eof = 0;
   int octets_read = file_read(buffer + *buffer_filled, bspace, fp);
@@ -204,7 +205,7 @@ int warc_fillbuffer(FileHandle *fp, char *buffer, int *buffer_filled) {
   return eof;
 }
 
-void warc_erasebuffer(char *buffer, int *buffer_filled, int erase_bytes)
+static void warc_erasebuffer(char *buffer, int *buffer_filled, int erase_bytes)
 {
   // Erase 'erase_bytes' bytes from the buffer, moving the remaining portion
   // to the start.
@@ -212,7 +213,7 @@ void warc_erasebuffer(char *buffer, int *buffer_filled, int erase_bytes)
   *buffer_filled -= erase_bytes;
 }
 
-void AR_warc(FileHandle *fp)
+static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
 {
   char buffer[WARC_BUFFER];
   char header[WARC_BUFFER];
@@ -283,14 +284,14 @@ void AR_warc(FileHandle *fp)
     
     if (lc_strcmp(WARC_Type, "response")==0) {
       //printf("Index [%s]\n", newDoc->docid);
-      indexfile(newDoc);
+      processfile(newDoc);
     } else {
       FreeDocument(newDoc);
     }
   }
 }
 
-void AR_tar(FileHandle *fp)
+static void AR_tar(FileHandle *fp, void (*processfile)(Document *))
 { 
   for (;;) {
     char buffer[512];
@@ -319,12 +320,12 @@ void AR_tar(FileHandle *fp)
     if (strcmp(filename, "NULL")==0) {
       FreeDocument(newDoc);
     } else {
-      indexfile(newDoc);
+      processfile(newDoc);
     }
   }
 }
 
-void AR_wsj(FileHandle *fp)
+static void AR_wsj(FileHandle *fp,  void (*processfile)(Document *))
 {
   int archiveSize;
   char *doc_start;
@@ -367,7 +368,7 @@ void AR_wsj(FileHandle *fp)
         newDoc->data = filedat;
         newDoc->data_length = archiveSize;
         
-        indexfile(newDoc);
+        processfile(newDoc);
                 
         memmove(buf, doc_end, buflen-doclen);
         buflen -= doclen;
@@ -382,16 +383,22 @@ void AR_wsj(FileHandle *fp)
 }
 
 
-void RunIndex()
+static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)(Document *))
 {
-  char path[2048];
-  void (*archivereader)(FileHandle *) = NULL;
-  char *targetformat = Config("TARGET-FORMAT");
+  void (*archivereader)(FileHandle *, void (*)(Document *)) = NULL;
   if (lc_strcmp(targetformat, "file")==0) archivereader = AR_file;
   if (lc_strcmp(targetformat, "tar")==0) archivereader = AR_tar;
   if (lc_strcmp(targetformat, "wsj")==0) archivereader = AR_wsj;
   if (lc_strcmp(targetformat, "warc")==0) archivereader = AR_warc;
-  
+  return archivereader;
+}
+
+void RunIndex()
+{
+  char path[2048];
+  void (*archivereader)(FileHandle *, void (*)(Document *));
+  archivereader = getarchivereader(Config("TARGET-FORMAT"));
+
   if (archivereader == NULL) {
     fprintf(stderr, "Invalid/unspecified TARGET-FORMAT\n");
     exit(1);
@@ -402,13 +409,40 @@ void RunIndex()
     FileHandle *fp = file_open(path);
     if (fp) {
       strcpy(current_archive_path, path);
-      archivereader(fp);
+      archivereader(fp, indexfile);
       file_close(fp);
     }
   }
   Flush_Threaded();
 }
 
+static void addstats(Document *doc)
+{
+  ProcessFile(NULL, doc);
+}
+
+void RunTermStats()
+{
+  char path[2048];
+  void (*archivereader)(FileHandle *, void (*)(Document *));
+  archivereader = getarchivereader(Config("TARGET-FORMAT"));
+
+  if (archivereader == NULL) {
+    fprintf(stderr, "Invalid/unspecified TARGET-FORMAT\n");
+    exit(1);
+  }
+  
+  while (getnextfile(path)) {
+    //printf("%s\n", path);
+    FileHandle *fp = file_open(path);
+    if (fp) {
+      strcpy(current_archive_path, path);
+      archivereader(fp, addstats);
+      file_close(fp);
+    }
+  }
+  WriteStats();
+}
 
 void Index_InitCfg()
 {

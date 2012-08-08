@@ -74,7 +74,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
   // This function returns 'currdoc' normally, or NULL in the case of
   // a merge.
   
-  if (lastdoc == NULL) return currdoc;
+  if (!C || !lastdoc) return currdoc;
     
   int merge = 0;
   if (HASH_COUNT(lastdoc) < cfg.split.min) {
@@ -123,6 +123,15 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
   return currdoc;
 }
 
+static void addstats(docterm *currdoc)
+{
+  docterm *curr, *tmp;
+  HASH_ITER(hh, currdoc, curr, tmp) {
+    AddTermStat(curr->term, curr->count);
+    HASH_DEL(currdoc, curr);
+    free(curr);
+  }
+}
 
 // Process the supplied file, then free both strings when done
 void ProcessFile(SignatureCache *C, Document *doc)
@@ -199,6 +208,10 @@ void ProcessFile(SignatureCache *C, Document *doc)
   createsig(C, currdoc, lastdoc, doc);
   createsig(C, NULL, currdoc, doc);
   docterms = 0;
+  
+  if (!C) {
+    addstats(currdoc);
+  }
   currdoc = NULL;
   lastdoc = NULL;
   FreeDocument(doc);

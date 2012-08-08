@@ -17,7 +17,8 @@ int total_terms;
 
 static StatTerm *termtable = NULL;
 static StatTerm *termlist = NULL;
-
+int termlist_count = 0;
+int termlist_size = 0;
 
 int TermFrequencyStats(const char *term)
 {
@@ -30,6 +31,30 @@ int TermFrequencyStats(const char *term)
     return 0;
 }
 
+void AddTermStat(const char *word, int count)
+{
+  StatTerm *cterm;
+  HASH_FIND_STR(termtable, word, cterm);
+  if (!cterm) {
+    if (termlist_size == 0) {
+      termlist_size = atoi(Config("TERMSTATS-SIZE"));
+      termlist = malloc(sizeof(StatTerm) * termlist_size);
+    }
+    if (termlist_count < termlist_size) {
+      cterm = termlist + termlist_count;
+      strncpy(cterm->t, word, DOCSTATS_TERMLEN);
+      cterm->t[DOCSTATS_TERMLEN - 1] = '\0';
+      cterm->freq_docs = 0;
+      cterm->freq_terms = count;
+      
+      HASH_ADD_STR(termtable, t, cterm);
+      termlist_count++;
+    }
+  } else {
+    cterm->freq_terms += count;
+  }
+}
+
 void Stats_InitCfg()
 {
   if (termlist) return;
@@ -37,6 +62,7 @@ void Stats_InitCfg()
   char *termstats_path = Config("TERMSTATS-PATH");
   if (termstats_path) {
     FILE *fp = fopen(termstats_path, "rb");
+    if (fp == NULL) return;
     fseek(fp, 0, SEEK_END);
     int records = ftell(fp) / (32 + 4 + 4);
     fseek(fp, 0, SEEK_SET);
@@ -68,4 +94,26 @@ void Stats_InitCfg()
     
     fclose(fp);
   }
+}
+
+void WriteStats()
+{
+  FILE *fp = fopen(Config("TERMSTATS-PATH-OUTPUT"), "wb");
+  if (!fp) {
+    fprintf(stderr, "Error: unable to write termstats\n");
+    exit(1);
+  }
+  int total_terms = 0;
+  for (int i = 0; i < termlist_count; i++) {
+    StatTerm *cterm = termlist + i;
+    fwrite(cterm->t, DOCSTATS_TERMLEN, 1, fp);
+    file_write32(cterm->freq_docs, fp);
+    file_write32(cterm->freq_terms, fp);
+    
+    total_terms += cterm->freq_terms;
+  }
+  fclose(fp);
+  
+  printf("\n%d unique terms\n", termlist_count);
+  printf("%d total terms\n", total_terms);
 }
