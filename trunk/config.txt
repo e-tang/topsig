@@ -225,8 +225,17 @@ OUTPUT-PERIOD = 1000
 
 # TERMSTATS-PATH - path to a file containing term statistics, necessary
 # for some ranking functions. Reading this in will consume some memory
-# depending on the site of the file
+# depending on the site of the file.
 #TERMSTATS-PATH = docstats.stat
+# TERMSTATS-PATH-OUTPUT - path to write the term statistics out of in
+# statistics collection mode.
+#TERMSTATS-PATH-OUTPUT = docstats.stat
+# TERMSTATS-SIZE - in statistics collection mode, number of term stats
+# to keep. This should be set to a high enough number to hold every
+# unique term in the collection as additional terms will be ignored
+# once this number is reached. It uses TERMSTATS-SIZE * 72 bytes
+# of memory.
+#TERMSTATS-SIZE = 1000000
 
 #----------------------------------------------------------------------
 # MISCELLANEOUS
