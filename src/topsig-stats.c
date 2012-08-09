@@ -33,6 +33,8 @@ int TermFrequencyStats(const char *term)
 
 void AddTermStat(const char *word, int count)
 {
+  if (strlen(word) >= DOCSTATS_TERMLEN) return;
+
   StatTerm *cterm;
   HASH_FIND_STR(termtable, word, cterm);
   if (!cterm) {
@@ -42,8 +44,7 @@ void AddTermStat(const char *word, int count)
     }
     if (termlist_count < termlist_size) {
       cterm = termlist + termlist_count;
-      strncpy(cterm->t, word, DOCSTATS_TERMLEN);
-      cterm->t[DOCSTATS_TERMLEN - 1] = '\0';
+      strcpy(cterm->t, word);
       cterm->freq_docs = 0;
       cterm->freq_terms = count;
       
