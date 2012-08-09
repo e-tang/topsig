@@ -188,26 +188,30 @@ void ProcessFile(SignatureCache *C, Document *doc)
         }
       }
     }
-    if ((*p == '.') && (cfg.split.type == SPLIT_SENTENCE) && (docterms >= cfg.split.min)) {
-      // Sentence split
-      currdoc = createsig(C, currdoc, lastdoc, doc);
-      lastdoc = currdoc;
-      docterms = 0;
-      currdoc = NULL;
-    }
-    if ((cfg.split.type != SPLIT_NONE) && (docterms >= cfg.split.max)) {
-      currdoc = createsig(C, currdoc, lastdoc, doc);
-      lastdoc = currdoc;
-      docterms = 0;
-      currdoc = NULL;
+    if (C) {
+      if ((*p == '.') && (cfg.split.type == SPLIT_SENTENCE) && (docterms >= cfg.split.min)) {
+        // Sentence split
+        currdoc = createsig(C, currdoc, lastdoc, doc);
+        lastdoc = currdoc;
+        docterms = 0;
+        currdoc = NULL;
+      }
+      if ((cfg.split.type != SPLIT_NONE) && (docterms >= cfg.split.max)) {
+        currdoc = createsig(C, currdoc, lastdoc, doc);
+        lastdoc = currdoc;
+        docterms = 0;
+        currdoc = NULL;
+      }
     }
   }
   if (cterm_len > 0) {
     currdoc=addterm(currdoc, cterm, cterm_len, &docterms);
     cterm_len = 0;
   }
-  createsig(C, currdoc, lastdoc, doc);
-  createsig(C, NULL, currdoc, doc);
+  if (C) {
+    createsig(C, currdoc, lastdoc, doc);
+    createsig(C, NULL, currdoc, doc);
+  }
   docterms = 0;
   
   if (!C) {
