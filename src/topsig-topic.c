@@ -25,7 +25,7 @@ void run_topic(Search *S, const char *topic_id, const char *topic_txt, FILE *fp)
 void reader_wsj(Search *S, FILE *in, FILE *out)
 {
   int topicnum;
-  static char topic_txt[4096];
+  static char topic_txt[65536];
   static char topic_id[128];
   for (;;) {
     if (fscanf(in, "%d %[^\n]\n", &topicnum, topic_txt) < 2) break;
