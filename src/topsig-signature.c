@@ -328,6 +328,7 @@ static void initcache()
   // int maxnamelen
   // int sig-width
   // int sig-density
+  // int sig-seed
   // char[64] sig-method (null-terminated)
   
   int header_size = 6 * 4 + 64;
