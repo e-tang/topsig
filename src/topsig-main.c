@@ -22,14 +22,14 @@ int main(int argc, const char **argv)
   ConfigUpdate();
 
   if (strcmp(argv[1], "index")==0) RunIndex();
-  if (strcmp(argv[1], "query")==0) RunQuery();
-  if (strcmp(argv[1], "topic")==0) RunTopic();
-  if (strcmp(argv[1], "termstats")==0) RunTermStats();
+  else if (strcmp(argv[1], "query")==0) RunQuery();
+  else if (strcmp(argv[1], "topic")==0) RunTopic();
+  else if (strcmp(argv[1], "termstats")==0) RunTermStats();
   
   // Experimental modes are not listed in the usage() function
-  if (strcmp(argv[1], "experimental-rf")==0) RunExperimentalRF();
+  else if (strcmp(argv[1], "experimental-rf")==0) RunExperimentalRF();
 
-  usage();
+  else usage();
   return 0;
 }
 
