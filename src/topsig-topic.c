@@ -4,7 +4,6 @@
 #include "topsig-global.h"
 #include "topsig-config.h"
 #include "topsig-search.h"
-#include "uthash.h"
 
 void run_topic(Search *S, const char *topic_id, const char *topic_txt, FILE *fp)
 {

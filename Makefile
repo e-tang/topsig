@@ -34,6 +34,7 @@ src/topsig-progress.o \
 src/topsig-semaphore.o \
 src/topsig-stats.o \
 src/topsig-document.o \
+src/topsig-experimental-rf.o \
 src/superfasthash.o \
 src/ISAAC-rand.o
 

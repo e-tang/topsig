@@ -5,6 +5,8 @@
 #include "topsig-query.h"
 #include "topsig-topic.h"
 
+#include "topsig-experimental-rf.h"
+
 static void usage();
 
 int main(int argc, const char **argv)
@@ -19,26 +21,14 @@ int main(int argc, const char **argv)
 
   ConfigUpdate();
 
-  if (strcmp(argv[1], "index")==0) {
-    RunIndex();
-    return 0;
-  }
+  if (strcmp(argv[1], "index")==0) RunIndex();
+  if (strcmp(argv[1], "query")==0) RunQuery();
+  if (strcmp(argv[1], "topic")==0) RunTopic();
+  if (strcmp(argv[1], "termstats")==0) RunTermStats();
   
-  if (strcmp(argv[1], "query")==0) {
-    RunQuery();
-    return 0;
-  }
-  
-  if (strcmp(argv[1], "topic")==0) {
-    RunTopic();
-    return 0;
-  }
-  
-  if (strcmp(argv[1], "termstats")==0) {
-    RunTermStats();
-    return 0;
-  }
-  
+  // Experimental modes are not listed in the usage() function
+  if (strcmp(argv[1], "experimental-rf")==0) RunExperimentalRF();
+
   usage();
   return 0;
 }
