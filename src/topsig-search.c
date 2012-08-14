@@ -263,6 +263,23 @@ void ApplyBlindFeedback(Search *S, Results *R, int sample)
     SignatureDestroy(sig);    
 }
 
+void ApplyFeedback(Search *S, Results *R, const char *feedback, int k)
+{   
+    Signature *sig = create_query_signature(S, feedback);
+    
+    if (R->k < k) k = R->k;
+    
+    unsigned char bsig[S->cfg.length / 8];
+    unsigned char bmask[S->cfg.length / 8];
+    FlattenSignature(sig, bsig, bmask);
+        
+    for (int i = 0; i < k; i++) {
+        R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
+    }
+    qsort(R->res, k, sizeof(R->res[0]), result_compar);
+    
+    SignatureDestroy(sig);    
+}
 
 void MergeResults(Results *base, Results *add)
 {
@@ -392,9 +409,9 @@ Results *SearchCollection(Search *S, Signature *sig, const int topk)
   while (!reached_end) {
     if (S->entire_file_cached != 1) {
       // Read as many signatures from the file as possible
-      fprintf(stderr, "Reading from signature file... ");fflush(stdout);
+      fprintf(stderr, "Reading from signature file... ");fflush(stderr);
       size_t sigs_read = fread(S->cache, sig_record_size, max_cached_sigs, S->sig);
-      fprintf(stderr, "done\n");fflush(stdout);      
+      fprintf(stderr, "done\n");fflush(stderr);      
       if (S->entire_file_cached == -1) {
         if (sigs_read < max_cached_sigs) {
           // As this is the first attempt at reading, we can assume that everything was read
@@ -467,11 +484,15 @@ void Writer_trec(FILE *out, const char *topic_id, Results *R)
   }
 }
 
+static void freeresult(struct Result *R)
+{
+  free(R->docid);
+  free(R->signature);
+}
 void FreeResults(Results *R)
 {
   for (int i = 0; i < R->k; i++) {
-    free(R->res[i].docid);
-    free(R->res[i].signature);
+    freeresult(&R->res[i]);
   }
   free(R);
 }
@@ -482,4 +503,18 @@ void FreeSearch(Search *S)
   DestroySignatureCache(S->sigcache);
   free(S->cache);
   free(S);
+}
+
+const char *GetResult(Results *R, int N)
+{
+  return R->res[N].docid;
+}
+
+void RemoveResult(Results *R, int N)
+{
+  freeresult(&R->res[N]);
+  for (int i = N; i < R->k - 1; i++) {
+    R->res[i] = R->res[i+1];
+  }
+  R->k--;
 }
