@@ -70,7 +70,7 @@ void Stats_InitCfg()
     termlist = malloc(sizeof(StatTerm) * records);
     
     int pips_drawn = -1;
-    printf("\n");
+    fprintf(stderr, "\n");
     for (int i = 0; i < records; i++) {
       fread(termlist[i].t, DOCSTATS_TERMLEN, 1, fp);
       termlist[i].freq_docs = file_read32(fp);
@@ -83,15 +83,15 @@ void Stats_InitCfg()
       int pips = ((i + 1) * 10 + (records / 2)) / records;
       if (pips > pips_drawn) {
         pips_drawn = pips;
-        printf("\rReading term stats: [");
+        fprintf(stderr, "Reading term stats: [");
         for (int p = 0; p < 10; p++) {
-          printf(p < pips ? "*" : " ");
+          fprintf(stderr, p < pips ? "*" : " ");
         }
-        printf("]");
+        fprintf(stderr, "]");
       }
 
     }
-    printf("\n");
+    fprintf(stderr, "\n");
     
     fclose(fp);
   }
@@ -115,6 +115,6 @@ void WriteStats()
   }
   fclose(fp);
   
-  printf("\n%d unique terms\n", termlist_count);
-  printf("%d total terms\n", total_terms);
+  fprintf(stderr, "\n%d unique terms\n", termlist_count);
+  fprintf(stderr, "%d total terms\n", total_terms);
 }

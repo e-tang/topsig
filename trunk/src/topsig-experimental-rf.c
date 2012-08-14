@@ -7,5 +7,5 @@
 
 void RunExperimentalRF()
 {
-  Search *S = InitSearch();
+//  Search *S = InitSearch();
 }

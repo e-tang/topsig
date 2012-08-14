@@ -392,9 +392,9 @@ Results *SearchCollection(Search *S, Signature *sig, const int topk)
   while (!reached_end) {
     if (S->entire_file_cached != 1) {
       // Read as many signatures from the file as possible
-      printf("Reading from signature file... ");fflush(stdout);
+      fprintf(stderr, "Reading from signature file... ");fflush(stdout);
       size_t sigs_read = fread(S->cache, sig_record_size, max_cached_sigs, S->sig);
-      printf("done\n");fflush(stdout);      
+      fprintf(stderr, "done\n");fflush(stdout);      
       if (S->entire_file_cached == -1) {
         if (sigs_read < max_cached_sigs) {
           // As this is the first attempt at reading, we can assume that everything was read

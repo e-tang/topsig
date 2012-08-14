@@ -29,7 +29,7 @@ void Progress_InitCfg()
   
   tsem_init(&sem_progress, 0, 1);
   
-  if (cfg.totaldocs > 0) printf("\n");
+  if (cfg.totaldocs > 0) fprintf(stderr, "\n");
 }
 
 static int current_docs = 0;
@@ -66,7 +66,7 @@ void ProgressTick(const char *identifier)
     for (int i = 0; i < meter_prg; i++) {
       meter[i] = '*';
     }
-    printf("\r[%s] %d/%d %s", meter, c, cfg.totaldocs, time_est);
+    fprintf(stderr, "\r[%s] %d/%d %s", meter, c, cfg.totaldocs, time_est);
   }
   
   tsem_post(&sem_progress);
