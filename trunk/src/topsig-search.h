@@ -22,4 +22,9 @@ void MergeResults(Results *, Results *);
 
 void Writer_trec(FILE *out, const char *topic_id, Results *R);
 
+const char *GetResult(Results *, int);
+void RemoveResult(Results *, int);
+
+void ApplyFeedback(Search *, Results *, const char *, int);
+
 #endif
