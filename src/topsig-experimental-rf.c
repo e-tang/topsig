@@ -56,14 +56,17 @@ void RunExperimentalRF()
       scanf("%d%c", &feedback_lines, &nl);
       //fprintf(stderr, "received %d lines of feedback\n", feedback_lines); fflush(stderr);
       
-      // Read and discard the feedback
       int i;
+      sprintf(feedback, "%s", topic);
       for (i = 0; i < feedback_lines; i++) {
         fgets(readfeedback, MAX_FEEDBACK_LENGTH + 1, stdin);
-        sprintf(feedback, "%s %s", topic, readfeedback);
+        sprintf(feedback, "%s %s", feedback, readfeedback);
         strcpy(oldfeedback, readfeedback);
-        ApplyFeedback(S, R, feedback, 50);
       }
+      if (feedback_lines > 0) {
+        //ApplyFeedback(S, R, feedback, 50);
+      }
+
     }
     FreeResults(R);
     printf("EOF\n");
