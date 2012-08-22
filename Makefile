@@ -13,7 +13,7 @@ else
     BUILD = -g3
 endif
 
-LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread -Wl,--large-address-aware
 CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread
 
 OBJS = src/topsig-main.o \
