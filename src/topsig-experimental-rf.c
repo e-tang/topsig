@@ -64,7 +64,7 @@ void RunExperimentalRF()
         strcpy(oldfeedback, readfeedback);
       }
       if (feedback_lines > 0) {
-        //ApplyFeedback(S, R, feedback, 50);
+        ApplyFeedback(S, R, feedback, 50);
       }
 
     }
