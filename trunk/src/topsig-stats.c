@@ -89,7 +89,7 @@ void Stats_InitCfg()
       int pips = ((i + 1) * 10 + (records / 2)) / records;
       if (pips > pips_drawn) {
         pips_drawn = pips;
-        fprintf(stderr, "Reading term stats: [");
+        fprintf(stderr, "\rReading term stats: [");
         for (int p = 0; p < 10; p++) {
           fprintf(stderr, p < pips ? "*" : " ");
         }
