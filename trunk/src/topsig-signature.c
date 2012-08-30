@@ -176,16 +176,8 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
   
   int termStats = TermFrequencyStats(term);
   if (termStats != -1) {
-    int tcf;
-    double logLikelihood;
-    
-    if (termStats) {
-      tcf = termStats;
-    } else {
-      tcf = count;
-    }
-  
-    logLikelihood = log((double) count / (double) total_count * (double) total_terms / (double) tcf);
+    int tcf = termStats ? termStats : count;
+    double logLikelihood = log((double) count / (double) total_count * (double) total_terms / (double) tcf);
 //      printf("LL=%lf, count=%d, total_count=%d, total_term=%d, tcf=%d\n",logLikelihood,count,total_count,total_terms,tcf);
     if (logLikelihood > 0) {
       weight = logLikelihood * (count-0.9) * 1000.0;
