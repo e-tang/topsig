@@ -50,7 +50,7 @@ void AddTermStat(const char *word, int count)
     if (termlist_count < termlist_size) {
       cterm = termlist + termlist_count;
       cterm->t = word_hash;
-      cterm->freq_docs = 0;
+      cterm->freq_docs = 1;
       cterm->freq_terms = count;
       
       HASH_ADD_INT(termtable, t, cterm);
@@ -58,6 +58,7 @@ void AddTermStat(const char *word, int count)
     }
   } else {
     cterm->freq_terms += count;
+    cterm->freq_docs += 1;
   }
 }
 
@@ -110,16 +111,21 @@ void WriteStats()
     exit(1);
   }
   int total_terms = 0;
+  StatTerm *cterm = termlist;
+  int termlist_added = 0;
   for (int i = 0; i < termlist_count; i++) {
-    StatTerm *cterm = termlist + i;
-    file_write32(cterm->t, fp);
-    file_write32(cterm->freq_docs, fp);
-    file_write32(cterm->freq_terms, fp);
+    if (cterm->freq_docs > 1) {
+      file_write32(cterm->t, fp);
+      file_write32(cterm->freq_docs, fp);
+      file_write32(cterm->freq_terms, fp);
+      termlist_added++;
+    }
     
     total_terms += cterm->freq_terms;
+    cterm++;
   }
   fclose(fp);
   
-  fprintf(stderr, "\n%d unique terms\n", termlist_count);
+  fprintf(stderr, "\n%d unique terms (%d written)\n", termlist_count, termlist_added);
   fprintf(stderr, "%d total terms\n", total_terms);
 }
