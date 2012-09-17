@@ -361,6 +361,7 @@ static void dumpsignature(Signature *sig)
   //printf("Testing printf with val %d\n", 166);
   //printf("docnamelen: %d\n", docnamelen);
   char sigheader[cfg.docnamelen+1];
+  memset(sigheader, 0, cfg.docnamelen+1);
   //printf("Sizeof %d\n", sizeof(sigheader));
   
   //strncpy((char *)sigheader, sig->id, cfg.docnamelen);
