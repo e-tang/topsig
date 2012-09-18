@@ -51,18 +51,8 @@ char *Stem(char *str) {
       break;
     case PORTER:
       {
-        if (strcmp(str, "closing")==0) {
-          char tbuf[256];
-          sprintf(tbuf, "INPUT %s\n", str);
-          fwrite(tbuf, strlen(tbuf), 1, stdout);
-          int newlen = stem_ts2(str, strlen(str)-1) + 1;
-          str[newlen] = '\0';
-          sprintf(tbuf, "OUTPUT %s LEN %d\n", str, newlen);
-          fwrite(tbuf, strlen(tbuf), 1, stdout);
-        } else {
         int newlen = stem_ts2(str, strlen(str)-1) + 1;
         str[newlen] = '\0';
-        }
       }
       break;
     case S:
