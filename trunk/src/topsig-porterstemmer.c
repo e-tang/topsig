@@ -381,3 +381,19 @@ extern int stem_ts(struct stemmer * z, char * b, int k)
    step1ab(z); step1c(z); step2(z); step3(z); step4(z); step5(z);
    return z->k;
 }
+
+extern int stem_ts2(char * b, int k)
+{
+  struct stemmer Z;
+  struct stemmer *z = &Z;
+   if (k <= 1) return k; /*-DEPARTURE-*/
+   z->b = b; z->k = k; /* copy the parameters into z */
+
+   /* With this line, strings of length 1 or 2 don't go through the
+      stemming process, although no mention is made of this in the
+      published algorithm. Remove the line to match the published
+      algorithm. */
+
+   step1ab(z); step1c(z); step2(z); step3(z); step4(z); step5(z);
+   return z->k;
+}

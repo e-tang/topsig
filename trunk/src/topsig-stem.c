@@ -15,8 +15,6 @@ volatile enum {
   S
 } currentStemmer = UNSET;
 
-static struct stemmer *porter_stemmer = NULL;
-
 void s_stem(char *s)
 {
   // S-stemmer, described by Harman in 'How Effective is Suffixing'
@@ -53,8 +51,18 @@ char *Stem(char *str) {
       break;
     case PORTER:
       {
-        int newlen = stem_ts(porter_stemmer, str, strlen(str)-1) + 1;
+        if (strcmp(str, "closing")==0) {
+          char tbuf[256];
+          sprintf(tbuf, "INPUT %s\n", str);
+          fwrite(tbuf, strlen(tbuf), 1, stdout);
+          int newlen = stem_ts2(str, strlen(str)-1) + 1;
+          str[newlen] = '\0';
+          sprintf(tbuf, "OUTPUT %s LEN %d\n", str, newlen);
+          fwrite(tbuf, strlen(tbuf), 1, stdout);
+        } else {
+        int newlen = stem_ts2(str, strlen(str)-1) + 1;
         str[newlen] = '\0';
+        }
       }
       break;
     case S:
@@ -72,15 +80,8 @@ void Stem_InitCfg()
 {
   const char *s = Config("STEMMER");
   
-  // Free any existing stemmers
-  if (porter_stemmer) {
-    free_stemmer(porter_stemmer);
-    porter_stemmer = NULL;
-  }
-  
   if (strcmp(s, "porter")==0) {
     currentStemmer = PORTER;
-    porter_stemmer = create_stemmer();
     return;
   }
   if (strcmp(s, "none")==0) {
