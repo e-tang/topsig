@@ -50,4 +50,4 @@ all-at-once:
 		gcc ${CCFLAGS} -o topsig src/*.c -fwhole-program -flto ${LDFLAGS}
 
 clean:		
-		rm ${OBJS}
+		rm -f ${OBJS}
