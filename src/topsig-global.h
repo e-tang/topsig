@@ -65,6 +65,20 @@ inline static void mem_write32(int val, unsigned char *p)
   *(p+3) = (val >> 24) & 0xFF;
 }
 
+inline static int mem_read16(unsigned char *p)
+{
+  unsigned int r = 0;
+  r |= (unsigned int)(*(p+0));
+  r |= (unsigned int)(*(p+1)) << 8;
+  return r;
+}
+
+inline static void mem_write16(int val, unsigned char *p)
+{
+  *(p+0) = (val >> 0) & 0xFF;
+  *(p+1) = (val >> 8) & 0xFF;
+}
+
 inline static void error_oom()
 {
   fprintf(stderr, "Error: out of memory.\n");
