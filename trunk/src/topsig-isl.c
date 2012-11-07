@@ -242,7 +242,7 @@ void RunSearchISL()
   int topk_2ndlowest = 0;
   for (int m = 0; m < 65536; m++) {
     int dist = count_bits(bitmask[m]);
-    printf("\nM: %5d. Dist: %2d\n------------------------\n", m, dist);
+    //printf("\nM: %5d. Dist: %2d\n------------------------\n", m, dist);
     if (results[topk_lowest].score + (16-dist)*cfg.sig_slices <= results[topk_2ndlowest].score) {
       printf("Early exit @ dist %d\n", dist);
       break;
@@ -253,7 +253,7 @@ void RunSearchISL()
     for (int slice = 0; slice < cfg.sig_slices; slice++) {
       int val = mem_read16(sigcache + cfg.sig_offset + 2 * slice) ^ bitmask[m];
       sum+=slices[slice].lookup[val].count;
-      printf("Slice %d: %d  (total: %d)\n", slice+1, slices[slice].lookup[val].count, sum);
+      //printf("Slice %d: %d  (total: %d)\n", slice+1, slices[slice].lookup[val].count, sum);
       for (int n = 0; n < slices[slice].lookup[val].count; n++) {
         int d = slices[slice].lookup[val].list[n];
         scores[d] += 16-dist;
