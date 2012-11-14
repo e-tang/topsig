@@ -171,23 +171,23 @@ static Signature *create_query_signature(Search *S, const char *query)
   return sig;
 }
 
-static int get_document_dist(Search *S, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig)
+int DocumentDistance(int sigwidth, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig)
 {
   unsigned int c = 0;
-  if ((sizeof(unsigned long int) == 8) && (S->cfg.length % 64 == 0)) {
+  if ((sizeof(unsigned long int) == 8) && (sigwidth % 64 == 0)) {
     // 64-bit optimised version, only available if unsigned long int is 64 bits and if the signature is a
     // multiple of 64 bits
     unsigned long int *query_sig = (unsigned long int *)bsig;
     unsigned long int *mask_sig = (unsigned long int *)bmask;
     unsigned long int *doc_sig = (unsigned long int *)dsig;
     unsigned long int v;
-    for (int i = 0; i < S->cfg.length / 64; i++) {
+    for (int i = 0; i < sigwidth / 64; i++) {
       v = (doc_sig[i] ^ query_sig[i]) & mask_sig[i];
       v = v - ((v >> 1) & 0x5555555555555555);
       v = (v & 0x3333333333333333) + ((v >> 2) & 0x3333333333333333);
       c += (((v + (v >> 4)) & 0x0f0f0f0f0f0f0f0f) * 0x0101010101010101) >> 56;
     }
-  } else if ((sizeof(unsigned int) == 4) && (S->cfg.length % 32 == 0)) {
+  } else if ((sizeof(unsigned int) == 4) && (sigwidth % 32 == 0)) {
     // 32-bit optimised version, only available if unsigned int is 32 bits and if the signature is a multiple
     // of 32 bits
     unsigned int *query_sig = (unsigned int *)bsig;
@@ -195,7 +195,7 @@ static int get_document_dist(Search *S, unsigned char *bsig, unsigned char *bmas
     unsigned int *doc_sig = (unsigned int *)dsig;
     unsigned int v;
     
-    for (int i = 0; i < S->cfg.length / 32; i++) {
+    for (int i = 0; i < sigwidth / 32; i++) {
       v = (doc_sig[i] ^ query_sig[i]) & mask_sig[i];
       v = v - ((v >> 1) & 0x55555555);
       v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
@@ -256,7 +256,7 @@ void ApplyBlindFeedback(Search *S, Results *R, int sample)
     int rerank_k = atoi(Config("PSEUDO-FEEDBACK-RERANK"));
     
     for (int i = 0; i < rerank_k; i++) {
-        R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
+        R->res[i].dist = DocumentDistance(S->cfg.length, bsig, bmask, R->res[i].signature);
     }
     qsort(R->res, rerank_k, sizeof(R->res[0]), result_compar);
     
@@ -274,7 +274,7 @@ void ApplyFeedback(Search *S, Results *R, const char *feedback, int k)
     FlattenSignature(sig, bsig, bmask);
         
     for (int i = 0; i < k; i++) {
-        R->res[i].dist = get_document_dist(S, bsig, bmask, R->res[i].signature);
+        R->res[i].dist = DocumentDistance(S->cfg.length, bsig, bmask, R->res[i].signature);
     }
     qsort(R->res, k, sizeof(R->res[0]), result_compar);
     
@@ -347,7 +347,7 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
     unsigned char *signature_header_vals = signature_header + S->cfg.docnamelen + 1;
     unsigned char *signature = S->cache + sig_record_size * i + sig_offset;
     
-    int dist = get_document_dist(S, bsig, bmask, signature);
+    int dist = DocumentDistance(S->cfg.length, bsig, bmask, signature);
     int qual = get_document_quality(S, signature_header_vals);
     
     const char *docid = (const char *)(signature_header + docid_offset);

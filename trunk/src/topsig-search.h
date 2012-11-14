@@ -16,6 +16,8 @@ void PrintResults(Results *, int topk);
 void FreeResults(Results *);
 void FreeSearch(Search *);
 
+int DocumentDistance(int sigwidth, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig);
+
 Results *FindHighestScoring(Search *S, const int start, const int count, const int topk, unsigned char *bsig, unsigned char *bmask);
 
 void MergeResults(Results *, Results *);
