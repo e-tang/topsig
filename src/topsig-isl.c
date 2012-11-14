@@ -1,5 +1,6 @@
 #include "topsig-isl.h"
 #include "topsig-global.h"
+#include "topsig-search.h"
 #include "topsig-config.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,6 +181,7 @@ static int bitcount_compar(const void *A, const void *B)
 
 typedef struct {
   int score;
+  int dist;
   int docid;
 } result;
 
@@ -189,7 +191,10 @@ static int result_compar(const void *A, const void *B)
   const result *a = A;
   const result *b = B;
   
-  return b->score - a->score;
+  if (a->dist != b->dist)
+    return a->dist - b->dist;
+  
+  return a->docid - b->docid;
 }
 
 static int int_compar(const void *A, const void *B)
@@ -212,12 +217,13 @@ void RunSearchISL()
   }
   
   readSigHeader(fp);
+  
   int records;
   islSlice *slices = readISL(Config("ISL-PATH"), &records);
   printf("Total records: %d\n", records);
   
   int dirty_n = 0;
-  int dirty[10000];
+  int dirty[500000];
   
   int compare_doc = atoi(Config("SEARCH-DOC"));
   fseek(fp, cfg.headersize + cfg.sig_record_size * compare_doc, SEEK_SET);
@@ -240,11 +246,16 @@ void RunSearchISL()
   
   int topk_lowest = 0;  
   int topk_2ndlowest = 0;
+  int max_dist = atoi(Config("ISL-MAX-DIST"));
   for (int m = 0; m < 65536; m++) {
     int dist = count_bits(bitmask[m]);
+    if (dist > max_dist) {
+      fprintf(stderr, "Early exit, exceeded max dist of %d\n", max_dist);
+      break;
+    }
     //printf("\nM: %5d. Dist: %2d\n------------------------\n", m, dist);
     if (results[topk_lowest].score + (16-dist)*cfg.sig_slices <= results[topk_2ndlowest].score) {
-      printf("Early exit @ dist %d\n", dist);
+      fprintf(stderr, "Early exit @ dist %d\n", dist);
       break;
     }
     
@@ -306,6 +317,18 @@ void RunSearchISL()
     
   }
   
+  int sig_bytes = cfg.sig_width / 8;
+  unsigned char cursig[sig_bytes];
+  unsigned char curmask[sig_bytes];
+  
+  memset(curmask, 0xFF, sig_bytes);
+  
+  for (int i = 0; i < topk; i++) {
+    fseek(fp, cfg.headersize + cfg.sig_record_size * results[i].docid + cfg.sig_offset, SEEK_SET);
+    fread(cursig, sig_bytes, 1, fp);
+    results[i].dist = DocumentDistance(cfg.sig_width, sigcache + cfg.sig_offset, curmask, cursig);
+  }
+  
   
   qsort(results, topk, sizeof(result), result_compar);
   
@@ -314,7 +337,7 @@ void RunSearchISL()
     fseek(fp, cfg.headersize + cfg.sig_record_size * results[i].docid, SEEK_SET);
     fread(docname, 1, cfg.maxnamelen + 1, fp);
 
-    printf("%02d. (%05d) %s  Score: %d (first seen at %d)\n", i+1, results[i].docid, docname, results[i].score, scoresd[results[i].docid] - 1);
+    printf("%02d. (%05d) %s  Dist: %d (first seen at %d)\n", i+1, results[i].docid, docname, results[i].dist, scoresd[results[i].docid] - 1);
   }
 
   /*
@@ -335,6 +358,9 @@ void RunSearchISL()
   }
   */
   
+  /*
+  // Histogram display
+  
   int hist[17];
   for (int i = 0; i < records; i++) {
     hist[scoresd[i]-1]++;
@@ -342,6 +368,7 @@ void RunSearchISL()
   for (int i = 0; i < 17; i++) {
     printf("%2d: %d\n", i, hist[i]);
   }
+  */
   
   fclose(fp);
 }
