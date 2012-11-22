@@ -358,7 +358,7 @@ void RunSearchISL()
   }
   */
   
-  /*
+  
   // Histogram display
   
   int hist[17];
@@ -368,7 +368,7 @@ void RunSearchISL()
   for (int i = 0; i < 17; i++) {
     printf("%2d: %d\n", i, hist[i]);
   }
-  */
+  
   
   fclose(fp);
 }
