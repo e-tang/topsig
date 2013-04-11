@@ -382,6 +382,54 @@ static void AR_wsj(FileHandle *fp,  void (*processfile)(Document *))
   }
 }
 
+static void AR_newline(FileHandle *fp,  void (*processfile)(Document *))
+{
+  int archiveSize;
+  char *doc_start;
+  char *doc_end;
+
+  char buf[BUFFER_SIZE];
+  
+  int buflen = file_read(buf, BUFFER_SIZE-1, fp);
+  int doclen;
+  buf[buflen] = '\0';
+  int file_index = 0;
+  
+  for (;;) {
+    if ((doc_start = strstr(buf, "\n")) != NULL) {
+      if ((doc_end = strstr(doc_start+1, "\n")) != NULL) {
+        file_index++;
+        doclen = doc_end-buf;
+        
+        char *filename = malloc(8);
+        sprintf(filename, "%04d", file_index);
+                
+        archiveSize = doc_end-doc_start;
+
+        char *filedat = malloc(archiveSize + 1);
+        memcpy(filedat, doc_start, archiveSize);
+        filedat[archiveSize] = '\0';
+        
+        Document *newDoc = NewDocument(NULL, NULL);
+        newDoc->docid = filename;
+        newDoc->data = filedat;
+        newDoc->data_length = archiveSize;
+        
+        processfile(newDoc);
+                
+        memmove(buf, doc_end, buflen-doclen);
+        buflen -= doclen;
+        
+        buflen += file_read(buf+buflen, BUFFER_SIZE-1-buflen, fp);
+        buf[buflen] = '\0';
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+}
 
 static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)(Document *))
 {
@@ -390,6 +438,7 @@ static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)
   if (lc_strcmp(targetformat, "tar")==0) archivereader = AR_tar;
   if (lc_strcmp(targetformat, "wsj")==0) archivereader = AR_wsj;
   if (lc_strcmp(targetformat, "warc")==0) archivereader = AR_warc;
+  if (lc_strcmp(targetformat, "newline")==0) archivereader = AR_newline;
   return archivereader;
 }
 

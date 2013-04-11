@@ -4,7 +4,7 @@
 #include "topsig-index.h"
 #include "topsig-query.h"
 #include "topsig-topic.h"
-#include "topsig-isl.h"
+#include "topsig-issl.h"
 
 #include "topsig-experimental-rf.h"
 
@@ -31,6 +31,8 @@ int main(int argc, const char **argv)
   else if (strcmp(argv[1], "experimental-rf")==0) RunExperimentalRF();
   else if (strcmp(argv[1], "createisl")==0) RunCreateISL();
   else if (strcmp(argv[1], "docsim")==0) RunSearchISL();
+  else if (strcmp(argv[1], "docsim-turbo")==0) RunSearchISLTurbo();
+  else if (strcmp(argv[1], "experimental-reranktop")==0) ExperimentalRerankTopFile();
 
   else usage();
   return 0;

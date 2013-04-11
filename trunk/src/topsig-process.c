@@ -22,8 +22,8 @@ static struct {
   int charmask[256];
   struct {
     enum {SPLIT_NONE, SPLIT_HARD, SPLIT_SENTENCE} type;
-    int min;
-    int max;
+    unsigned int min;
+    unsigned int max;
   } split;
   enum {FILTER_NONE, FILTER_XML} filter;
 } cfg;
@@ -36,7 +36,7 @@ typedef struct {
   UT_hash_handle hh;
 } docterm;
 
-static docterm *addterm(docterm *termlist, char *term, int termlen, int *docterms)
+static docterm *addterm(docterm *termlist, char *term, int termlen, unsigned int *docterms)
 {
   strtolower(term);
   Stem(term);
@@ -144,7 +144,7 @@ void ProcessFile(SignatureCache *C, Document *doc)
 
   docterm *currdoc = NULL;
   docterm *lastdoc = NULL;
-  int docterms = 0;
+  unsigned int docterms = 0;
     
   // XML filter vars
   int xml_inelement = 0;

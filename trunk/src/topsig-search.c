@@ -139,7 +139,7 @@ Search *InitSearch()
   return S;
 }
 
-static Signature *create_query_signature(Search *S, const char *query)
+Signature *CreateQuerySignature(Search *S, const char *query)
 {
   Signature *sig = NewSignature("query");
   
@@ -265,7 +265,7 @@ void ApplyBlindFeedback(Search *S, Results *R, int sample)
 
 void ApplyFeedback(Search *S, Results *R, const char *feedback, int k)
 {   
-    Signature *sig = create_query_signature(S, feedback);
+    Signature *sig = CreateQuerySignature(S, feedback);
     
     if (R->k < k) k = R->k;
     
@@ -462,7 +462,7 @@ Results *SearchCollection(Search *S, Signature *sig, const int topk)
 
 Results *SearchCollectionQuery(Search *S, const char *query, const int topk)
 {
-  Signature *sig = create_query_signature(S, query);
+  Signature *sig = CreateQuerySignature(S, query);
   //SignaturePrint(sig);
 
   Results *R = SearchCollection(S, sig, topk);

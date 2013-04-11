@@ -47,7 +47,7 @@ inline static int file_read32(FILE *fp)
   return r;
 }
 
-inline static int mem_read32(unsigned char *p)
+inline static int mem_read32(const unsigned char *p)
 {
   unsigned int r = 0;
   r |= (unsigned int)(*(p+0));
@@ -65,7 +65,7 @@ inline static void mem_write32(int val, unsigned char *p)
   *(p+3) = (val >> 24) & 0xFF;
 }
 
-inline static int mem_read16(unsigned char *p)
+inline static int mem_read16(const unsigned char *p)
 {
   unsigned int r = 0;
   r |= (unsigned int)(*(p+0));

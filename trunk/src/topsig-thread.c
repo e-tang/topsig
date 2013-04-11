@@ -22,6 +22,13 @@ Results *FindHighestScoring_Threaded(Search *S, const int start, const int count
   return NULL;
 }
 
+void DivideWork(void **job_inputs, void *(*start_routine)(void*), int jobs)
+{
+  fprintf(stderr, "Error: Threading disabled. Change SEARCH-THREADING to single or compile in threading support.\n");
+  exit(1);
+  return NULL;
+}
+
 struct {
   void (*func)(void);
 } CallOnce_list[CALLONCE_BUFFER]; // will be init with {NULL}
@@ -239,4 +246,18 @@ Results *FindHighestScoring_Threaded(Search *S, const int start, const int count
     }
   }
   return R;
+}
+
+// Generic job-splitting routine
+void DivideWork(void **job_inputs, void *(*start_routine)(void*), int jobs)
+{
+  pthread_t workthreads[jobs];
+
+  for (int i = 0; i < jobs; i++) {
+    pthread_create(workthreads+i, NULL, start_routine, job_inputs[i]);
+  }
+  
+  for (int i = 0; i < jobs; i++) {
+    pthread_join(workthreads[i], NULL);
+  }
 }
