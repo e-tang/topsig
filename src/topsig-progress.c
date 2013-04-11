@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
 #include "topsig-config.h"
 #include "topsig-global.h"
 #include "topsig-atomic.h"
@@ -13,6 +14,7 @@ static struct {
 } cfg;
 
 TSemaphore sem_progress;
+struct timeval start_time;
 
 void Progress_InitCfg()
 {
@@ -23,6 +25,8 @@ void Progress_InitCfg()
   if (lc_strcmp(Config("OUTPUT-PROGRESS"),"none")==0) cfg.type = PROGRESS_NONE;
   if (lc_strcmp(Config("OUTPUT-PROGRESS"),"periodic")==0) cfg.type = PROGRESS_PERIODIC;
   if (lc_strcmp(Config("OUTPUT-PROGRESS"),"full")==0) cfg.type = PROGRESS_FULL;
+  
+  gettimeofday(&start_time, NULL);
   
   if (Config("OUTPUT-PERIOD")) cfg.period = atoi(Config("OUTPUT-PERIOD"));
   if (Config("OUTPUT-PROGRESS-DOCUMENTS")) cfg.totaldocs = atoi(Config("OUTPUT-PROGRESS-DOCUMENTS"));
@@ -42,14 +46,18 @@ void ProgressTick(const char *identifier)
   if ((cfg.type == PROGRESS_PERIODIC) && (c % cfg.period != 0)) return;
   tsem_wait(&sem_progress);
   
+  struct timeval curr_time;
+  gettimeofday(&curr_time, NULL);
+  double elapsed_secs = curr_time.tv_sec - start_time.tv_sec;
+  elapsed_secs += (curr_time.tv_usec - start_time.tv_usec) / 1000000.0;
+  
   char time_est[256] = "";
   
-  clock_t clockval = clock();
-  int time_secs = clockval / CLOCKS_PER_SEC;
-  int time_ms = clockval % CLOCKS_PER_SEC / (CLOCKS_PER_SEC / 1000);
+  int time_secs = (int)elapsed_secs;
+  int time_ms = (int)((elapsed_secs - time_secs) * 1000.0);
   int time_mins = time_secs / 60;
   int dps = 0;
-  dps = (double) c / (double) clockval * CLOCKS_PER_SEC;
+  dps = (double) c / elapsed_secs;
   time_secs = time_secs % 60;
   
   sprintf(time_est, "- %d:%02d.%03d (%d per sec)", time_mins, time_secs, time_ms, dps);

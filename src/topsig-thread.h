@@ -13,4 +13,6 @@ void Flush_Threaded();
 // Threaded searching
 Results *FindHighestScoring_Threaded(Search *, const int, const int, const int, unsigned char *, unsigned char *, int);
 
+void DivideWork(void **job_inputs, void *(*start_routine)(void*), int jobs);
+
 #endif

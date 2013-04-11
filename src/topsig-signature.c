@@ -291,7 +291,7 @@ static void sig_SKIP_add(int *sig, randctx *R) {
     }
 }
 
-#define SIGCACHESIZE 1024
+#define SIGCACHESIZE 16
 static volatile struct {
   Signature *sigs[SIGCACHESIZE];
   FILE *fp;
