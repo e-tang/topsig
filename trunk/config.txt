@@ -46,6 +46,8 @@
 # TARGET-FORMAT = file
 # TARGET-FORMAT = tar
 # TARGET-FORMAT = wsj
+# TARGET-FORMAT = warc
+# TARGET-FORMAT = newline
 
 # The compression format of the target.
 # Examples
@@ -165,6 +167,7 @@ TOPIC-PATH = topics.txt
 
 # TOPIC-FORMAT
 # wsj - one topic per line e.g. "51 airbus subsidies"
+# plain - one topic per line with no topic number
 TOPIC-FORMAT = wsj
 
 # TOPIC-OUTPUT-FORMAT
