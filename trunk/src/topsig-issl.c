@@ -362,7 +362,7 @@ void isslsum(int *scores, const unsigned char *sigcache, const int *bitmask, int
 
 typedef struct {
   int **scores;
-  const unsigned char **sigcaches;
+  unsigned char const* const* sigcaches;
   int sigcaches_n;
   const int *bitmask;
   int first_issl;
@@ -373,7 +373,7 @@ typedef struct {
 void *isslsum_void(void *input)
 {
   ISSLSumInput *i = (ISSLSumInput *)input;
-  for (int n = 0; n < i->sigcaches_n; i++) {
+  for (int n = 0; n < i->sigcaches_n; n++) {
     isslsum(i->scores[n], i->sigcaches[n], i->bitmask, i->first_issl, i->last_issl, i->slices);
   }
   return NULL;
@@ -499,8 +499,7 @@ void RunSearchISLTurbo()
           ISSLSumInput *input = malloc(sizeof(ISSLSumInput));
           
           input->scores = scores;
-          const unsigned char **ttest = sigcaches;
-          input->sigcaches = ttest;
+          input->sigcaches = (unsigned char const * const * )sigcaches;
           input->sigcaches_n = sigcaches_filled;
           input->bitmask = bitmask;
           input->first_issl = mstart;
@@ -510,7 +509,7 @@ void RunSearchISLTurbo()
           inputs[cthread] = input;
           //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
         }
-        DivideWork(inputs, isslsum_void, threads * sigcaches_filled);
+        DivideWork(inputs, isslsum_void, threads);
         for (int cthread = 0; cthread < threads; cthread++) {
           free(inputs[cthread]);
         }
