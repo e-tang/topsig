@@ -435,7 +435,7 @@ void RunSearchISLTurbo()
     compare_doc_last = atoi(Config("SEARCH-DOC-LAST"));
   }
 
-  int *scores = malloc(sizeof(int) * records);
+
   int *bitmask = malloc(sizeof(int) * 65536);
   
   int max_dist = atoi(Config("ISL-MAX-DIST"));
@@ -460,66 +460,90 @@ void RunSearchISLTurbo()
     threads = atoi(Config("SEARCH-DOC-THREADS"));
   }
   
+  int lookahead = 1;
+  if (Config("SEARCH-DOC-LOOKAHEAD")) {
+    lookahead = atoi(Config("SEARCH-DOC-LOOKAHEAD"));
+  }
+  
+  int **scores = malloc(sizeof(int *) * lookahead);
+  
+  for (int i = 0; i < lookahead; i++) {
+    scores[i] = malloc(sizeof(int) * records);
+  }
+  
+  int sigcaches_filled = 0;
   fseek(fp_src, cfg.headersize + cfg.sig_record_size * compare_doc_first, SEEK_SET);
+  unsigned char sigcaches[lookahead][cfg.sig_record_size];
   for (compare_doc = compare_doc_first; compare_doc <= compare_doc_last; compare_doc++) {
-    unsigned char sigcache[cfg.sig_record_size];
-    fread(sigcache, cfg.sig_record_size, 1, fp_src);
-        
-    memset(scores, 0, sizeof(scores[0]) * records);
-    
-    if (threads == 1) {
-      isslsum(scores, sigcache, bitmask, 0, mlength-1, slices);
-    } else {
-      void *inputs[threads];
-      for (int cthread = 0; cthread < threads; cthread++) {
-        int mstart = cthread * mlength / threads;
-        int mend = (1+cthread) * mlength / threads - 1;
-        
-        ISSLSumInput *input = malloc(sizeof(ISSLSumInput));
-        
-        input->scores = scores;
-        input->sigcache = sigcache;
-        input->bitmask = bitmask;
-        input->first_issl = mstart;
-        input->last_issl = mend;
-        input->slices = slices;
-        
-        inputs[cthread] = input;
-        //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
-      }
-      DivideWork(inputs, isslsum_void, threads);
-      for (int cthread = 0; cthread < threads; cthread++) {
-        free(inputs[cthread]);
-      }
-    }
-    
-    result *results = malloc(sizeof(result) * records);
-    for (int i = 0; i < records; i++) {
-      results[i].docid = i;
-      results[i].score = scores[i];
-      results[i].dist = cfg.sig_width - scores[i];
-    }
-    
-    result *topresults = extract_topk(results, records, topk);
-    
-    int sig_bytes = cfg.sig_width / 8;
-    unsigned char curmask[sig_bytes];
-    memset(curmask, 0xFF, sig_bytes);
-    
-    rescoreResults_buffer(fp_sig_buffer, topresults, topk, sigcache + cfg.sig_offset, curmask);
-    
-    qsort(topresults, topk, sizeof(result), result_compar);
-    
-    for (int i = 0; i < topk-1; i++) {
-      char *docname = (char *)fp_sig_buffer + (cfg.sig_record_size * topresults[i].docid);
+    memset(scores[sigcaches_filled], 0, sizeof(scores[0]) * records);
 
-      //printf("%02d. (%05d) %s  Dist: %d (first seen at %d)\n", i+1, results[i].docid, docname, results[i].dist, scoresd[results[i].docid] - 1);
-      //printf("%s Q0 %s 1 1 topsig\n", sigcache, docname);
-      //printf("%s DIST %03d XIST Q0 %s 1 1 topsig\n", sigcache, results[i].dist, docname);
-      printf("%s %s %d\n", sigcache, docname, topresults[i].dist);
+    fread(sigcaches[sigcaches_filled++], cfg.sig_record_size, 1, fp_src);
+    
+    if ((sigcaches_filled == lookahead) || (compare_doc == compare_doc_last)) {
+    
+      if (threads == 1) {
+        for (int i = 0; i < sigcaches_filled; i++) {
+          isslsum(scores[i], sigcaches[i], bitmask, 0, mlength-1, slices);
+        }
+      } else {
+        void *inputs[threads];
+        for (int i = 0; i < sigcaches_filled; i++) {
+          for (int cthread = 0; cthread < threads; cthread++) {
+            int mstart = cthread * mlength / threads;
+            int mend = (1+cthread) * mlength / threads - 1;
+            
+            ISSLSumInput *input = malloc(sizeof(ISSLSumInput));
+            
+            input->scores = scores[i];
+            input->sigcache = sigcaches[i];
+            input->bitmask = bitmask;
+            input->first_issl = mstart;
+            input->last_issl = mend;
+            input->slices = slices;
+            
+            inputs[i * threads + cthread] = input;
+            //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
+          }
+        }
+        DivideWork(inputs, isslsum_void, threads * sigcaches_filled);
+        for (int cthread = 0; cthread < threads * sigcaches_filled; cthread++) {
+          free(inputs[cthread]);
+        }
+      }
+      
+      for (int sc = 0; sc < sigcaches_filled; sc++) {
+
+        result *results = malloc(sizeof(result) * records);
+        for (int i = 0; i < records; i++) {
+          results[i].docid = i;
+          results[i].score = scores[sc][i];
+          results[i].dist = cfg.sig_width - scores[sc][i];
+        }
+        
+        result *topresults = extract_topk(results, records, topk);
+        
+        int sig_bytes = cfg.sig_width / 8;
+        unsigned char curmask[sig_bytes];
+        memset(curmask, 0xFF, sig_bytes);
+        
+        rescoreResults_buffer(fp_sig_buffer, topresults, topk, sigcaches[sc] + cfg.sig_offset, curmask);
+        
+        qsort(topresults, topk, sizeof(result), result_compar);
+        
+        for (int i = 0; i < topk-1; i++) {
+          char *docname = (char *)fp_sig_buffer + (cfg.sig_record_size * topresults[i].docid);
+
+          //printf("%02d. (%05d) %s  Dist: %d (first seen at %d)\n", i+1, results[i].docid, docname, results[i].dist, scoresd[results[i].docid] - 1);
+          //printf("%s Q0 %s 1 1 topsig\n", sigcache, docname);
+          //printf("%s DIST %03d XIST Q0 %s 1 1 topsig\n", sigcache, results[i].dist, docname);
+          printf("%s %s %d\n", sigcaches[sc], docname, topresults[i].dist);
+        }
+        free(results);
+        free(topresults);
+        
+        sigcaches_filled = 0;
+      }
     }
-    free(results);
-    free(topresults);
   }
   
   fclose(fp_src);
