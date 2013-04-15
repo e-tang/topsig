@@ -2,7 +2,6 @@
 #define TOPSIG_ISL_H
 
 void RunCreateISL();
-void RunSearchISL();
 void RunSearchISLTurbo();
 
 void ExperimentalRerankTopFile();
