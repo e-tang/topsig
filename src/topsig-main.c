@@ -30,8 +30,7 @@ int main(int argc, const char **argv)
   // Experimental modes are not listed in the usage() function
   else if (strcmp(argv[1], "experimental-rf")==0) RunExperimentalRF();
   else if (strcmp(argv[1], "createisl")==0) RunCreateISL();
-  else if (strcmp(argv[1], "docsim")==0) RunSearchISL();
-  else if (strcmp(argv[1], "docsim-turbo")==0) RunSearchISLTurbo();
+  else if (strcmp(argv[1], "docsim")==0) RunSearchISLTurbo();
   else if (strcmp(argv[1], "experimental-reranktop")==0) ExperimentalRerankTopFile();
 
   else usage();
