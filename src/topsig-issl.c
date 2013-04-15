@@ -361,8 +361,9 @@ void isslsum(int *scores, const unsigned char *sigcache, const int *bitmask, int
 }
 
 typedef struct {
-  int *scores;
-  const unsigned char *sigcache;
+  int **scores;
+  const unsigned char **sigcaches;
+  int sigcaches_n;
   const int *bitmask;
   int first_issl;
   int last_issl;
@@ -372,7 +373,9 @@ typedef struct {
 void *isslsum_void(void *input)
 {
   ISSLSumInput *i = (ISSLSumInput *)input;
-  isslsum(i->scores, i->sigcache, i->bitmask, i->first_issl, i->last_issl, i->slices);
+  for (int n = 0; n < i->sigcaches_n; i++) {
+    isslsum(i->scores[n], i->sigcaches[n], i->bitmask, i->first_issl, i->last_issl, i->slices);
+  }
   return NULL;
 }
 
@@ -466,14 +469,16 @@ void RunSearchISLTurbo()
   }
   
   int **scores = malloc(sizeof(int *) * lookahead);
-  
+  unsigned char **sigcaches = malloc(sizeof(unsigned char *) * lookahead);
+
   for (int i = 0; i < lookahead; i++) {
     scores[i] = malloc(sizeof(int) * records);
+    sigcaches[i] = malloc(sizeof(unsigned char) * cfg.sig_record_size);
   }
   
   int sigcaches_filled = 0;
   fseek(fp_src, cfg.headersize + cfg.sig_record_size * compare_doc_first, SEEK_SET);
-  unsigned char sigcaches[lookahead][cfg.sig_record_size];
+  
   for (compare_doc = compare_doc_first; compare_doc <= compare_doc_last; compare_doc++) {
     memset(scores[sigcaches_filled], 0, sizeof(scores[0]) * records);
 
@@ -487,26 +492,26 @@ void RunSearchISLTurbo()
         }
       } else {
         void *inputs[threads];
-        for (int i = 0; i < sigcaches_filled; i++) {
-          for (int cthread = 0; cthread < threads; cthread++) {
-            int mstart = cthread * mlength / threads;
-            int mend = (1+cthread) * mlength / threads - 1;
-            
-            ISSLSumInput *input = malloc(sizeof(ISSLSumInput));
-            
-            input->scores = scores[i];
-            input->sigcache = sigcaches[i];
-            input->bitmask = bitmask;
-            input->first_issl = mstart;
-            input->last_issl = mend;
-            input->slices = slices;
-            
-            inputs[i * threads + cthread] = input;
-            //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
-          }
+        for (int cthread = 0; cthread < threads; cthread++) {
+          int mstart = cthread * mlength / threads;
+          int mend = (1+cthread) * mlength / threads - 1;
+          
+          ISSLSumInput *input = malloc(sizeof(ISSLSumInput));
+          
+          input->scores = scores;
+          const unsigned char **ttest = sigcaches;
+          input->sigcaches = ttest;
+          input->sigcaches_n = sigcaches_filled;
+          input->bitmask = bitmask;
+          input->first_issl = mstart;
+          input->last_issl = mend;
+          input->slices = slices;
+          
+          inputs[cthread] = input;
+          //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
         }
         DivideWork(inputs, isslsum_void, threads * sigcaches_filled);
-        for (int cthread = 0; cthread < threads * sigcaches_filled; cthread++) {
+        for (int cthread = 0; cthread < threads; cthread++) {
           free(inputs[cthread]);
         }
       }
