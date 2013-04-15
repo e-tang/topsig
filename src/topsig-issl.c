@@ -488,6 +488,9 @@ void RunSearchISLTurbo()
         //isslsum(scores, sigcache, bitmask, mstart, mend, slices);
       }
       DivideWork(inputs, isslsum_void, threads);
+      for (int cthread = 0; cthread < threads; cthread++) {
+        free(inputs[cthread]);
+      }
     }
     
     result *results = malloc(sizeof(result) * records);
