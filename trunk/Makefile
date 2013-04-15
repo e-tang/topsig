@@ -10,7 +10,7 @@ endif
 ifeq ($(strip $(DEBUG)),)
     BUILD = -O3
 else 
-    BUILD = -g3
+    BUILD = -g3 -pg
 endif
 
 LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread -Wl,--large-address-aware
@@ -34,7 +34,7 @@ src/topsig-progress.o \
 src/topsig-semaphore.o \
 src/topsig-stats.o \
 src/topsig-document.o \
-src/topsig-isl.o \
+src/topsig-issl.o \
 src/topsig-experimental-rf.o \
 src/superfasthash.o \
 src/ISAAC-rand.o
@@ -52,3 +52,12 @@ all-at-once:
 
 clean:		
 		rm -f ${OBJS}
+
+topcat:		
+		gcc ${CCFLAGS} -o topcat src/tools/topcat.c
+
+create_random_sigfile:		
+		gcc ${CCFLAGS} -o create_random_sigfile src/tools/create_random_sigfile.c
+
+wsj-title-lookup:		
+		gcc ${CCFLAGS} -o wsj-title-lookup src/tools/wsj-title-lookup.c
