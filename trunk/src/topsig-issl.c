@@ -75,6 +75,8 @@ static void islCount(FILE *fp, islSlice *slices)
   unsigned char sigcache[cfg.sig_record_size];
   fseek(fp, cfg.headersize, SEEK_SET);
   
+  printf("cfg.sig_offset = %d\n", cfg.sig_offset);
+  printf("cfg.sig_record_size = %d\n", cfg.sig_record_size);
   int grandsum = 0;
   while (fread(sigcache, cfg.sig_record_size, 1, fp) > 0) {
     for (int slice = 0; slice < cfg.sig_slices; slice++) {
@@ -83,7 +85,7 @@ static void islCount(FILE *fp, islSlice *slices)
       grandsum++;
     }
   }
-  //printf("grand sum: %d\n", grandsum);
+  printf("grand sum: %d\n", grandsum);
   
   for (int slice = 0; slice < cfg.sig_slices; slice++) {
     for (int val = 0; val < 65536; val++) {
@@ -118,11 +120,9 @@ static void islAdd(FILE *fp, islSlice *slices)
   file_write32(0, fo); // compression
   file_write32(0, fo); // storage mode
   file_write32(sig_index, fo); // signatures
-  /*
   for (int val = 0; val < 65536; val++) {
     printf("Val %d has %d\n", val, vlookup[val]);
   }
-  */
   for (int slice = 0; slice < cfg.sig_slices; slice++) {
     for (int val = 0; val < 65536; val++) {
       file_write32(slices[slice].lookup[val].count, fo);
@@ -364,7 +364,14 @@ void ExperimentalRerankTopFile()
   fclose(fp_sig);
 }
 
-void isslsum(int *scores, const unsigned char *sigcache, const int *bitmask, int first_issl, int last_issl, const islSlice *slices)
+static inline void isslsumadd(int *scores, const islEntry *e, int dist)
+{
+  for (int n = 0; n < e->count; n++) {
+    atomic_add(scores+e->list[n], 16-dist);
+  }
+}
+
+static inline void isslsum(int *scores, const unsigned char *sigcache, const int *bitmask, int first_issl, int last_issl, const islSlice *slices)
 {
   for (int m = first_issl; m <= last_issl; m++) {
     int dist = count_bits(bitmask[m]);
@@ -373,11 +380,8 @@ void isslsum(int *scores, const unsigned char *sigcache, const int *bitmask, int
     for (int slice = 0; slice < cfg.sig_slices; slice++) {
       int val = mem_read16(sigcache + cfg.sig_offset + 2 * slice) ^ bitmask[m];
       //sum += slices[slice].lookup[val].count;
-      for (int n = 0; n < slices[slice].lookup[val].count; n++) {
-        int d = slices[slice].lookup[val].list[n];
-        //scores[d] += 16 - dist;
-        atomic_add(scores+d, 16-dist);
-      }
+      isslsumadd(scores, &slices[slice].lookup[val], dist);
+
     }
   }
 }
@@ -392,13 +396,24 @@ typedef struct {
   const islSlice *slices;
 } ISSLSumInput;
 
-void *isslsum_void(void *input)
+static void *isslsum_void(void *input)
 {
   ISSLSumInput *i = (ISSLSumInput *)input;
   for (int n = 0; n < i->sigcaches_n; n++) {
     isslsum(i->scores[n], i->sigcaches[n], i->bitmask, i->first_issl, i->last_issl, i->slices);
   }
   return NULL;
+}
+
+static inline result *allocscores(const int *scores, int records)
+{
+  result *results = malloc(sizeof(result) * records);
+  for (int i = 0; i < records; i++) {
+    results[i].docid = i;
+    results[i].score = scores[i];
+    results[i].dist = cfg.sig_width - scores[i];
+  }
+  return results;
 }
 
 void RunSearchISLTurbo()
@@ -538,13 +553,7 @@ void RunSearchISLTurbo()
       }
       
       for (int sc = 0; sc < sigcaches_filled; sc++) {
-
-        result *results = malloc(sizeof(result) * records);
-        for (int i = 0; i < records; i++) {
-          results[i].docid = i;
-          results[i].score = scores[sc][i];
-          results[i].dist = cfg.sig_width - scores[sc][i];
-        }
+        result *results = allocscores(scores[sc], records);
         
         result *topresults = extract_topk(results, records, topk);
         
