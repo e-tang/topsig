@@ -137,13 +137,31 @@ static void islAdd(FILE *fp, islSlice *slices)
 islSlice *readISL(const char *islPath, int *records)
 {
   FILE *fp = fopen(islPath, "rb");
-  int islfield_slices = file_read32(fp);
-  int islfield_compression = file_read32(fp);
-  int islfield_storagemode = file_read32(fp);
-  *records = file_read32(fp);
+  
+  unsigned char islheader[16];
+  
+  fread(islheader, 1, 16, fp);
+  
+  int islfield_slices = mem_read32(islheader);
+  int islfield_compression = mem_read32(islheader+4);
+  int islfield_storagemode = mem_read32(islheader+8);
+  *records = mem_read32(islheader+12);
   if (islfield_slices != cfg.sig_slices) {
     fprintf(stderr, "Error: signature file and ISL incompatible\n");
     exit(1);
+  }
+  
+  int *test_fields = (int *)islheader;
+  int fastread = 0;
+
+  if (islfield_slices == test_fields[0]) {
+    if (islfield_compression == test_fields[1]) {
+      if (islfield_storagemode == test_fields[2]) {
+        if (*records == test_fields[3]) {
+          fastread = 1;
+        }
+      }
+    }
   }
   
   islSlice *slices = malloc(sizeof(islSlice) * cfg.sig_slices);
@@ -155,8 +173,12 @@ islSlice *readISL(const char *islPath, int *records)
     for (int val = 0; val < 65536; val++) {
       slices[slice].lookup[val].count = file_read32(fp);
       slices[slice].lookup[val].list = malloc(sizeof(int) * slices[slice].lookup[val].count);
-      for (int n = 0; n < slices[slice].lookup[val].count; n++) {
-        slices[slice].lookup[val].list[n] = file_read32(fp);
+      if (fastread) {
+        fread(slices[slice].lookup[val].list, 4, slices[slice].lookup[val].count, fp);
+      } else {
+        for (int n = 0; n < slices[slice].lookup[val].count; n++) {
+          slices[slice].lookup[val].list[n] = file_read32(fp);
+        }
       }
     }
     if ((slice % (cfg.sig_slices / 16)) == (cfg.sig_slices / 16 - 1)) {
