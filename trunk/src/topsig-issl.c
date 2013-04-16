@@ -75,17 +75,17 @@ static void islCount(FILE *fp, islSlice *slices)
   unsigned char sigcache[cfg.sig_record_size];
   fseek(fp, cfg.headersize, SEEK_SET);
   
-  printf("cfg.sig_offset = %d\n", cfg.sig_offset);
-  printf("cfg.sig_record_size = %d\n", cfg.sig_record_size);
-  int grandsum = 0;
+  //printf("cfg.sig_offset = %d\n", cfg.sig_offset);
+  //printf("cfg.sig_record_size = %d\n", cfg.sig_record_size);
+  //int grandsum = 0;
   while (fread(sigcache, cfg.sig_record_size, 1, fp) > 0) {
     for (int slice = 0; slice < cfg.sig_slices; slice++) {
       int val = mem_read16(sigcache + cfg.sig_offset + 2 * slice);
       slices[slice].lookup[val].count++;
-      grandsum++;
+      //grandsum++;
     }
   }
-  printf("grand sum: %d\n", grandsum);
+  //printf("grand sum: %d\n", grandsum);
   
   for (int slice = 0; slice < cfg.sig_slices; slice++) {
     for (int val = 0; val < 65536; val++) {
@@ -120,9 +120,11 @@ static void islAdd(FILE *fp, islSlice *slices)
   file_write32(0, fo); // compression
   file_write32(0, fo); // storage mode
   file_write32(sig_index, fo); // signatures
+  /*
   for (int val = 0; val < 65536; val++) {
     printf("Val %d has %d\n", val, vlookup[val]);
   }
+  */
   for (int slice = 0; slice < cfg.sig_slices; slice++) {
     for (int val = 0; val < 65536; val++) {
       file_write32(slices[slice].lookup[val].count, fo);
