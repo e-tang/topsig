@@ -56,8 +56,11 @@ clean:
 topcat:		
 		gcc ${CCFLAGS} -o topcat src/tools/topcat.c
 
-create_random_sigfile:		
-		gcc ${CCFLAGS} -o create_random_sigfile src/tools/create_random_sigfile.c
+create-random-sigfile:		
+		gcc ${CCFLAGS} -o create-random-sigfile src/tools/create-random-sigfile.c
 
 wsj-title-lookup:		
 		gcc ${CCFLAGS} -o wsj-title-lookup src/tools/wsj-title-lookup.c
+
+wiki-link-lookup:		
+		gcc ${CCFLAGS} -o wiki-link-lookup src/tools/wiki-link-lookup.c

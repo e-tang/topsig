@@ -35,8 +35,10 @@ int main(int argc, char **argv)
     fprintf(stderr, "usage: {input sigfile} {output sigfile}\n");
     return 0;
   }
-  if (FILE *fi = fopen(argv[1], "rb")) {
-    if (FILE *fo = fopen(argv[2], "wb")) {
+  FILE *fi;
+  FILE *fo;
+  if ((fi = fopen(argv[1], "rb"))) {
+    if ((fo = fopen(argv[2], "wb"))) {
       readSigHeader(fi);
       rewind(fi);
       unsigned char *fileheader_buffer = malloc(cfg.headersize);
