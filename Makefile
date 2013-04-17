@@ -56,14 +56,14 @@ clean:
 topcat:		
 		gcc ${CCFLAGS} -o topcat src/tools/topcat.c
 
-create-random-sigfile:		
+create-random-sigfile:		src/tools/create-random-sigfile.c
 		gcc ${CCFLAGS} -o create-random-sigfile src/tools/create-random-sigfile.c
 
-wsj-title-lookup:		
+wsj-title-lookup:		src/tools/wsj-title-lookup.c
 		gcc ${CCFLAGS} -o wsj-title-lookup src/tools/wsj-title-lookup.c
 
-wiki-link-lookup:		
+wiki-link-lookup:		src/tools/wiki-link-lookup.c
 		gcc ${CCFLAGS} -o wiki-link-lookup src/tools/wiki-link-lookup.c
 
-wsj-cosine-sim:		
+wsj-cosine-sim:		src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c
 		gcc ${CCFLAGS} -o wsj-cosine-sim src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c

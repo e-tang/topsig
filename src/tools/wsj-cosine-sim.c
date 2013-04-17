@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         HASH_DEL(attribute_set, a_current);
         free(a_current);
       }
-      double denom = sqrt(denom_a + denom_b);
+      double denom = sqrt(denom_a) * sqrt(denom_b);
       printf("Similarity: %f\n", numer/denom);
     }
   }
