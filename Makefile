@@ -64,3 +64,6 @@ wsj-title-lookup:
 
 wiki-link-lookup:		
 		gcc ${CCFLAGS} -o wiki-link-lookup src/tools/wiki-link-lookup.c
+
+wsj-cosine-sim:		
+		gcc ${CCFLAGS} -o wsj-cosine-sim src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c
