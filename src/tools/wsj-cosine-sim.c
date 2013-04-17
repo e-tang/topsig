@@ -70,7 +70,7 @@ void processfile(char *doctitle, char *document)
   docs[docid].tterms = 0;
   docs_n++;
   
-  if ((docid % 1000)==0) printf("%d/%d\n", docid, 173252);
+  if ((docid % 1000)==0) fprintf(stderr, "%d/%d\n", docid, 173252);
   
   doc *D = docs+docid;
   HASH_ADD_STR(docsearch, doctitle, D);
@@ -133,6 +133,8 @@ static void AR_wsj(FILE *fp)
         filedat[archiveSize] = '\0';
         
         processfile(filename, filedat);
+        
+        free(filedat);
                 
         memmove(buf, doc_end, buflen-doclen);
         buflen -= doclen;
@@ -141,7 +143,7 @@ static void AR_wsj(FILE *fp)
         buf[buflen] = '\0';
         
         // STOP EARLY -- TESTING
-        if (docs_n >= 10000) break;
+        //if (docs_n >= 10000) break;
       }
     } else {
       break;
@@ -155,14 +157,16 @@ int main(int argc, char **argv)
   FILE *fp = fopen(argv[1], "rb");
   AR_wsj(fp);
   fclose(fp);
+  FILE *fo = fopen(argv[2], "w");
   
-  printf("Collected %d documents with %d unique terms (%d total)\n", docs_n, tc_uniq, tc_total);
+  fprintf(stderr, "Collected %d documents with %d unique terms (%d total)\n", docs_n, tc_uniq, tc_total);
+  fflush(stderr);
   
   int i;
   int j;
   for (i = 0; i < docs_n; i++) {
     for (j = 0; j < docs_n; j++) {
-      printf("Comparing %s with %s\n", docs[i].doctitle, docs[j].doctitle);
+      //printf("Comparing %s with %s\n", docs[i].doctitle, docs[j].doctitle);
       attribute *attribute_set = NULL;
       
       term *i_current, *i_tmp;
@@ -213,9 +217,10 @@ int main(int argc, char **argv)
         free(a_current);
       }
       double denom = sqrt(denom_a) * sqrt(denom_b);
-      printf("Similarity: %f\n", numer/denom);
+      fprintf(fo, "%s %s %f\n", docs[i].doctitle, docs[j].doctitle, numer/denom);
     }
   }
+  fclose(fo);
   
   return 0;
 }
