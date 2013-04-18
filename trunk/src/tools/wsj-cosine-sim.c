@@ -109,7 +109,9 @@ static void AR_wsj(FILE *fp)
   for (;;) {
     if ((doc_start = strstr(buf, "<TEXT>")) != NULL) {
       if ((doc_end = strstr(buf, "</TEXT>")) != NULL) {
-        doc_end += 8;
+        char *doc_start_i = doc_start;
+        char *doc_end_i = doc_end;
+        doc_end += 7;
         doclen = doc_end-buf;
         //printf("Document found, %d bytes large\n", doclen);
         
@@ -120,14 +122,14 @@ static void AR_wsj(FILE *fp)
         title_end -= 1;
         
         title_start += 7;
-        
+                
         int title_len = title_end - title_start;
         char *filename = malloc(title_len + 1);
         memcpy(filename, title_start, title_len);
         filename[title_len] = '\0';
                 
-        archiveSize = (doc_end-8)-(doc_start + 7);
-
+        archiveSize = (doc_end-7)-(doc_start + 7);
+        
         char *filedat = malloc(archiveSize + 1);
         memcpy(filedat, doc_start + 7, archiveSize);
         filedat[archiveSize] = '\0';
@@ -135,11 +137,14 @@ static void AR_wsj(FILE *fp)
         processfile(filename, filedat);
         
         free(filedat);
+        printf("k copy %p %p %d %d [%.10s] [%.10s]", buf, doc_end, buflen, doclen, doc_start_i, doc_end_i);fflush(stdout);
                 
         memmove(buf, doc_end, buflen-doclen);
+        printf("_\n");fflush(stdout);
         buflen -= doclen;
         
         buflen += fread(buf+buflen, 1, BUFFER_SIZE-1-buflen, fp);
+        printf("wr %d\n", buflen);
         buf[buflen] = '\0';
         
         // STOP EARLY -- TESTING
@@ -149,6 +154,7 @@ static void AR_wsj(FILE *fp)
       break;
     }
   }
+  fprintf(stderr, "Finished\n");
 }
 
 
