@@ -61,7 +61,7 @@ void processterm(int docid, char *w)
   }
 }
 
-void processfile(char *doctitle, char *document)
+void processfile(char *doctitle, const char *document)
 {
   int docid = docs_n;
   docs[docid].doctitle = doctitle;
@@ -75,9 +75,10 @@ void processfile(char *doctitle, char *document)
   doc *D = docs+docid;
   HASH_ADD_STR(docsearch, doctitle, D);
   
-  char term[TERM_LEN+1];
+  char term[1024*1024];
   int term_n = 0;
   const char *p = document;
+  
   for (;;) {
     if (isalpha(*p)) {
       term[term_n++] = tolower(*p);
@@ -99,9 +100,7 @@ static void AR_wsj(FILE *fp)
   int archiveSize;
   char *doc_start;
   char *doc_end;
-
   char buf[BUFFER_SIZE];
-  
   int buflen = fread(buf, 1, BUFFER_SIZE-1, fp);
   int doclen;
   buf[buflen] = '\0';
@@ -122,7 +121,7 @@ static void AR_wsj(FILE *fp)
         title_end -= 1;
         
         title_start += 7;
-                
+                        
         int title_len = title_end - title_start;
         char *filename = malloc(title_len + 1);
         memcpy(filename, title_start, title_len);
@@ -134,17 +133,13 @@ static void AR_wsj(FILE *fp)
         memcpy(filedat, doc_start + 7, archiveSize);
         filedat[archiveSize] = '\0';
         
-        processfile(filename, filedat);
-        
+        processfile(filename, filedat, &checkera, &checkerb);
         free(filedat);
-        printf("k copy %p %p %d %d [%.10s] [%.10s]", buf, doc_end, buflen, doclen, doc_start_i, doc_end_i);fflush(stdout);
                 
         memmove(buf, doc_end, buflen-doclen);
-        printf("_\n");fflush(stdout);
         buflen -= doclen;
         
         buflen += fread(buf+buflen, 1, BUFFER_SIZE-1-buflen, fp);
-        printf("wr %d\n", buflen);
         buf[buflen] = '\0';
         
         // STOP EARLY -- TESTING
