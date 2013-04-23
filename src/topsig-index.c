@@ -431,6 +431,70 @@ static void AR_newline(FileHandle *fp,  void (*processfile)(Document *))
   }
 }
 
+
+// Reader for the Khresmoi medical documents 2012 web crawl (and possibly other similar crawls)
+static void AR_khresmoi(FileHandle *fp,  void (*processfile)(Document *))
+{
+  int archiveSize;
+  char *filename_start;
+  char *doc_start;
+  char *doc_end;
+
+  char buf[BUFFER_SIZE];
+  
+  int buflen = file_read(buf, BUFFER_SIZE-1, fp);
+  int doclen;
+  buf[buflen] = '\0';
+  int file_index = 0;
+  
+  for (;;) {
+    if ((filename_start = strstr(buf, "#UID:")) != NULL) {
+      if ((doc_start = strstr(filename_start+1, "#CONTENT:")) != NULL) {
+        if ((doc_end = strstr(doc_start+1, "\n#EOR")) != NULL) {
+          file_index++;
+          doclen = doc_end-buf;
+          
+          doc_start += strlen("#CONTENT:");
+          
+          filename_start += strlen("#UID:");
+          char *filename_end = strchr(filename_start, '\n');
+          
+          int filename_len = filename_end - filename_start;
+          char *filename = malloc(filename_len + 1);
+          memcpy(filename, filename_start, filename_len);
+          filename[filename_len] = '\0';
+                  
+          archiveSize = doc_end-doc_start;
+
+          char *filedat = malloc(archiveSize + 1);
+          memcpy(filedat, doc_start, archiveSize);
+          filedat[archiveSize] = '\0';
+          
+          Document *newDoc = NewDocument(NULL, NULL);
+          newDoc->docid = filename;
+          newDoc->data = filedat;
+          newDoc->data_length = archiveSize;
+          
+          processfile(newDoc);
+                  
+          memmove(buf, doc_end, buflen-doclen);
+          buflen -= doclen;
+          
+          buflen += file_read(buf+buflen, BUFFER_SIZE-1-buflen, fp);
+          buf[buflen] = '\0';
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+}
+
+
 static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)(Document *))
 {
   void (*archivereader)(FileHandle *, void (*)(Document *)) = NULL;
@@ -439,6 +503,7 @@ static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)
   if (lc_strcmp(targetformat, "wsj")==0) archivereader = AR_wsj;
   if (lc_strcmp(targetformat, "warc")==0) archivereader = AR_warc;
   if (lc_strcmp(targetformat, "newline")==0) archivereader = AR_newline;
+  if (lc_strcmp(targetformat, "khresmoi")==0) archivereader = AR_khresmoi;
   return archivereader;
 }
 
