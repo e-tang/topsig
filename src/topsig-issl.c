@@ -435,7 +435,7 @@ void RunSearchISLTurbo()
   int fpsig_sig_width = cfg.sig_width;
   readSigHeader(fp_src);
   if (fpsig_sig_width != cfg.sig_width) {
-    fprintf(stderr, "Error: source and signature sigfiles differ in width.\n");
+    fprintf(stderr, "Error: source and signature sigfiles differ in width. %d v %d\n", fpsig_sig_width, cfg.sig_width);
     exit(1);
   }
   
@@ -573,7 +573,12 @@ void RunSearchISLTurbo()
           //printf("%02d. (%05d) %s  Dist: %d (first seen at %d)\n", i+1, results[i].docid, docname, results[i].dist, scoresd[results[i].docid] - 1);
           //printf("%s Q0 %s 1 1 topsig\n", sigcache, docname);
           //printf("%s DIST %03d XIST Q0 %s 1 1 topsig\n", sigcache, results[i].dist, docname);
-          printf("%s %s %d\n", sigcaches[sc], docname, topresults[i].dist);
+          
+          // Norm format:
+          //printf("%s %s %d\n", sigcaches[sc], docname, topresults[i].dist);
+          
+          // TREC format:
+          printf("%s Q0 %s %d %d TopISSL\n", sigcaches[sc], docname, i+1, 1000000 - i);
         }
         free(results);
         free(topresults);
