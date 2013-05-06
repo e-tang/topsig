@@ -494,6 +494,60 @@ static void AR_khresmoi(FileHandle *fp,  void (*processfile)(Document *))
   }
 }
 
+static void AR_mediaeval(FileHandle *fp,  void (*processfile)(Document *))
+{
+  int archiveSize;
+  char *doc_start;
+  char *doc_end;
+
+  char buf[BUFFER_SIZE];
+  
+  int buflen = file_read(buf, BUFFER_SIZE-1, fp);
+  int doclen;
+  buf[buflen] = '\0';
+  
+  for (;;) {
+    if ((doc_start = strstr(buf, "<photo")) != NULL) {
+      if ((doc_end = strstr(doc_start+1, "</photo>")) != NULL) {
+        doc_start += strlen("<photo");
+        doc_end += strlen("</photo>");
+        doclen = doc_end-buf;
+        //printf("Document found, %d bytes large\n", doclen);
+        
+        char *title_start = strstr(buf, "id=\"");
+        title_start += strlen("id=\"");
+        char *title_end = strstr(title_start+1, "\"");
+        
+        
+        int title_len = title_end - title_start;
+        char *filename = malloc(title_len + 1);
+        memcpy(filename, title_start, title_len);
+        filename[title_len] = '\0';
+                
+        archiveSize = doc_end-doc_start;
+
+        char *filedat = malloc(archiveSize + 1);
+        memcpy(filedat, doc_start, archiveSize);
+        filedat[archiveSize] = '\0';
+        
+        Document *newDoc = NewDocument(NULL, NULL);
+        newDoc->docid = filename;
+        newDoc->data = filedat;
+        newDoc->data_length = archiveSize;
+        
+        processfile(newDoc);
+                
+        memmove(buf, doc_end, buflen-doclen);
+        buflen -= doclen;
+        
+        buflen += file_read(buf+buflen, BUFFER_SIZE-1-buflen, fp);
+        buf[buflen] = '\0';
+      }
+    } else {
+      break;
+    }
+  }
+}
 
 static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)(Document *))
 {
@@ -504,6 +558,7 @@ static void (*getarchivereader(const char *targetformat))(FileHandle *, void (*)
   if (lc_strcmp(targetformat, "warc")==0) archivereader = AR_warc;
   if (lc_strcmp(targetformat, "newline")==0) archivereader = AR_newline;
   if (lc_strcmp(targetformat, "khresmoi")==0) archivereader = AR_khresmoi;
+  if (lc_strcmp(targetformat, "mediaeval")==0) archivereader = AR_mediaeval;
   return archivereader;
 }
 
