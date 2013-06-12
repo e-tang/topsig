@@ -15,4 +15,13 @@ Results *FindHighestScoring_Threaded(Search *, const int, const int, const int, 
 
 void DivideWork(void **job_inputs, void *(*start_routine)(void*), int jobs);
 
+// Thread broadcast pool
+
+struct TBPHandle;
+typedef struct TBPHandle TBPHandle;
+
+TBPHandle *TBPInit(int threads, void **threaddata);
+void **TBPDivideWork(TBPHandle *H, void *job_input, void *(*start_routine)(void*, void*));
+void TBPClose(TBPHandle *H);
+
 #endif
