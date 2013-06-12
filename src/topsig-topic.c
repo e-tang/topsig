@@ -11,9 +11,7 @@ void run_topic(Search *S, const char *topic_id, const char *topic_txt, const cha
   
   outputwriter = Writer_trec;
   int num = atoi(Config("TOPIC-OUTPUT-K"));
-  
-  printf("Searching [%s]\n", topic_txt);fflush(stdout);
-  
+    
   Results *R = NULL;
   if (lc_strcmp(Config("TOPIC-REFINE-INVERT"), "true")!=0) {
     R = SearchCollectionQuery(S, topic_txt, num);
