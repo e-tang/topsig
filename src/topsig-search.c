@@ -480,7 +480,7 @@ void PrintResults(Results *R, int k)
 void Writer_trec(FILE *out, const char *topic_id, Results *R)
 {
   for (int i = 0; i < R->k; i++) {
-    fprintf(out, "%s Q0 %s %d %d %s\n", topic_id, R->res[i].docid, i+1, 1000000-i, "Topsig");
+    fprintf(out, "%s Q0 %s %d %d %s %d\n", topic_id, R->res[i].docid, i+1, 1000000-i, "Topsig", R->res[i].dist);
   }
 }
 
