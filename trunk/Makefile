@@ -67,6 +67,9 @@ wiki-link-lookup:		src/tools/wiki-link-lookup.c
 
 wsj-cosine-sim:		src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c
 		gcc ${CCFLAGS} -o wsj-cosine-sim src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c -Wl,--large-address-aware
-
+		
 topcut:		src/tools/topcut.c
 		gcc ${CCFLAGS} -o topcut src/tools/topcut.c
+
+plagtest:		src/tools/plagtest.c
+		gcc ${CCFLAGS} -o plagtest src/tools/plagtest.c
