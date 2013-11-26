@@ -32,11 +32,13 @@ typedef struct {
   char term[TERM_MAX_LEN+1];
   int termlen;
   int count;
+  int term_begin;
+  int term_end;
   
   UT_hash_handle hh;
 } docterm;
 
-static docterm *addterm(docterm *termlist, char *term, int termlen, unsigned int *docterms)
+static docterm *addterm(docterm *termlist, char *term, int termlen, unsigned int *docterms, int term_offset)
 {
   strtolower(term);
   Stem(term);
@@ -50,11 +52,15 @@ static docterm *addterm(docterm *termlist, char *term, int termlen, unsigned int
   HASH_FIND_STR(termlist, term, dterm);
   if (dterm) {
     dterm->count++;
+    if (term_offset < dterm->term_begin) dterm->term_begin = term_offset;
+    if (term_offset + termlen > dterm->term_end) dterm->term_end = term_offset + termlen;
   } else {
     docterm *newterm = malloc(sizeof(docterm));
     strcpy(newterm->term, term);
     newterm->count = 1;
     newterm->termlen = termlen;
+    newterm->term_begin = term_offset;
+    newterm->term_end = term_offset + termlen;
     HASH_ADD_STR(termlist, term, newterm);
     
     *docterms = *docterms + 1;
@@ -99,7 +105,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
     total_terms += curr->count;
   }
   HASH_ITER(hh, lastdoc, curr, tmp) {
-    SignatureAdd(C, sig, curr->term, curr->count, total_terms);
+    SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end);
     HASH_DEL(lastdoc, curr);
     free(curr);
   }
@@ -109,7 +115,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
       total_terms += curr->count;
     }
     HASH_ITER(hh, currdoc, curr, tmp) {
-      SignatureAdd(C, sig, curr->term, curr->count, total_terms);
+      SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end);
       HASH_DEL(currdoc, curr);
       free(curr);
     }
@@ -150,6 +156,7 @@ void ProcessFile(SignatureCache *C, Document *doc)
   int xml_inelement = 0;
   int xml_intag = 0;
   
+  int term_pos = -1;
   for (char *p = doc->data; *p != '\0'; p++) {
     int filterok = 1;
     switch (cfg.filter) {
@@ -173,19 +180,17 @@ void ProcessFile(SignatureCache *C, Document *doc)
     if (cfg.charmask[(int)*p] && filterok) {
       
       if (cterm_len < 1023) {
+        if (term_pos == -1) term_pos = p - doc->data;
         cterm[cterm_len++] = *p;
       }
     } else {
       cterm[cterm_len] = '\0';
       if (cterm_len > 0) {
         if (cterm_len <= TERM_MAX_LEN) {
-          currdoc=addterm(currdoc, cterm, cterm_len, &docterms);
-          cterm_len = 0;
-        } else {
-          // Reset the term length value but don't add the term. We could
-          // just clip this term, but why bother?
-          cterm_len = 0;
+          currdoc=addterm(currdoc, cterm, cterm_len, &docterms, term_pos);
         }
+        cterm_len = 0;
+        term_pos = -1;
       }
     }
     if (C) {
@@ -205,7 +210,7 @@ void ProcessFile(SignatureCache *C, Document *doc)
     }
   }
   if (cterm_len > 0) {
-    currdoc=addterm(currdoc, cterm, cterm_len, &docterms);
+    currdoc=addterm(currdoc, cterm, cterm_len, &docterms, term_pos);
     cterm_len = 0;
   }
   if (C) {
@@ -230,7 +235,7 @@ void Process_InitCfg()
   int all = lc_strcmp(Config("CHARMASK"),"all")==0 ? 1 : 0;
   
   for (int i = 0; i < 256; i++) {
-    cfg.charmask[i] = (isalpha(i) && alpha) || (isalnum(i) && alnum) || (isprint(i) && all);
+    cfg.charmask[i] = (isalpha(i) && alpha) || (isalnum(i) && alnum) || (isgraph(i) && all);
   }
   
   cfg.split.type = SPLIT_NONE;

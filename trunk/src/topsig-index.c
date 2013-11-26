@@ -396,13 +396,13 @@ static void AR_newline(FileHandle *fp,  void (*processfile)(Document *))
   int file_index = 0;
   
   for (;;) {
-    if ((doc_start = strstr(buf, "\n")) != NULL) {
+    if ((doc_start = buf) != NULL) {
       if ((doc_end = strstr(doc_start+1, "\n")) != NULL) {
         file_index++;
         doclen = doc_end-buf;
         
         char *filename = malloc(8);
-        sprintf(filename, "%04d", file_index);
+        sprintf(filename, "%d", file_index);
                 
         archiveSize = doc_end-doc_start;
 

@@ -1,11 +1,6 @@
 #gcc doesn't seem to have -march under Darwin, but this option is necessary for other
 #architectures that don't support atomic fetch and increment properly unless the -march
 #is changed
-ifeq "${shell uname -s}" "Darwin"
-  CCFLAGS_EXTRA =
-else
-  CCFLAGS_EXTRA = -march=i486 -mtune=native 
-endif
 
 ifeq ($(strip $(DEBUG)),)
     BUILD = -O3
@@ -13,8 +8,23 @@ else
     BUILD = -g3 -pg
 endif
 
-LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread -Wl,--large-address-aware
-CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread
+ifeq ($(strip $(64BIT)),)
+    BUILD2 = -Wl,--large-address-aware
+    
+  ifeq "${shell uname -s}" "Darwin"
+    CCFLAGS_EXTRA =
+  else
+    CCFLAGS_EXTRA = -march=i486 -mtune=native 
+  endif
+else 
+    BUILD2 =
+    CCFLAGS_EXTRA = -march=native -mtune=native -DIS64BIT
+endif
+
+#Putting -I/include in seems absolutely ridiculous, but the mingw-builds
+#mingw-w64 actually needs this. I don't get it either.
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread ${BUILD2}
+CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include -mpopcnt
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
@@ -36,6 +46,7 @@ src/topsig-stats.o \
 src/topsig-document.o \
 src/topsig-issl.o \
 src/topsig-experimental-rf.o \
+src/topsig-popcnt.o \
 src/superfasthash.o \
 src/ISAAC-rand.o
 
@@ -73,3 +84,12 @@ topcut:		src/tools/topcut.c
 
 plagtest:		src/tools/plagtest.c
 		gcc ${CCFLAGS} -o plagtest src/tools/plagtest.c
+		
+plagsummary:		src/tools/plagsummary.c
+		gcc ${CCFLAGS} -o plagsummary src/tools/plagsummary.c
+
+sigfile_to_ktree:		src/tools/sigfile_to_ktree.c
+		gcc ${CCFLAGS} -o sigfile_to_ktree src/tools/sigfile_to_ktree.c
+
+plag-cluster:		src/tools/plag-cluster.c
+		gcc ${CCFLAGS} -Wl,--large-address-aware -o plag-cluster src/tools/plag-cluster.c
