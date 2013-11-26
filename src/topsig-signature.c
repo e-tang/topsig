@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <limits.h>
 #include "topsig-signature.h"
 #include "topsig-config.h"
 #include "topsig-atomic.h"
@@ -36,8 +37,8 @@ struct Signature {
   int document_char_length;
   int total_terms;
   int quality;
-  int unused_5;
-  int unused_6;
+  int offset_begin;
+  int offset_end;
   int unused_7;
   int unused_8;
   
@@ -100,6 +101,8 @@ Signature *NewSignature(const char *docid)
   memset(sig, 0, sigsize);
   sig->id = malloc(strlen(docid) + 1);
   strcpy(sig->id, docid);
+  sig->offset_end = -1;
+  sig->offset_begin = INT_MAX;
   
   return sig;
 }
@@ -158,8 +161,8 @@ void SignatureSetValues(Signature *sig, Document *doc) {
   sig->document_char_length = doc->data_length;
   sig->total_terms = doc->stats.total_terms;
   sig->quality = DocumentQuality(doc);
-  sig->unused_5 = 0;
-  sig->unused_6 = 0;
+  // offset_begin and offset_end not touched here
+  
   sig->unused_7 = 0;
   sig->unused_8 = 0;
 }
@@ -169,6 +172,13 @@ static void sig_TRADITIONAL_add(int *, randctx *);
 static void sig_SKIP_add(int *, randctx *);
 
 // Signature term cache setup
+
+void SignatureAddOffset(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, int offset_begin, int offset_end)
+{
+  SignatureAdd(C, sig, term, count, total_count);
+  if (sig->offset_begin > offset_begin) sig->offset_begin = offset_begin;
+  if (sig->offset_end < offset_end) sig->offset_end = offset_end;
+}
 
 void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
 {
@@ -374,8 +384,8 @@ static void dumpsignature(Signature *sig)
   file_write32(sig->document_char_length, cache.fp);
   file_write32(sig->total_terms, cache.fp);
   file_write32(sig->quality, cache.fp);
-  file_write32(sig->unused_5, cache.fp);
-  file_write32(sig->unused_6, cache.fp);
+  file_write32(sig->offset_begin, cache.fp);
+  file_write32(sig->offset_end, cache.fp);
   file_write32(sig->unused_7, cache.fp);
   file_write32(sig->unused_8, cache.fp);
   

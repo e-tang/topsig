@@ -81,7 +81,7 @@ void readSigHeader(FILE *fp)
   }
   fread(sig_method, 1, 64, fp); // sig_method
   
-  cfg.sig_slices = (cfg.sig_width + cfg.slicewidth - 1) / cfg.slicewidth;
+  cfg.sig_slices = (cfg.sig_width /* + cfg.slicewidth - 1 */) / cfg.slicewidth;
   
   cfg.sig_offset = cfg.maxnamelen + 1;
   cfg.sig_offset += 8 * 4; // 8 32-bit ints
