@@ -173,6 +173,7 @@ Signature *CreateQuerySignature(Search *S, const char *query)
   return sig;
 }
 
+/*
 int DocumentDistance_bitwise(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig)
 {
   unsigned char bsig[sigwidth / 8]; memcpy(bsig, in_bsig, sigwidth / 8);
@@ -237,20 +238,30 @@ int DocumentDistance_popcnt2(int sigwidth, unsigned char *in_bsig, unsigned char
 
   return c;
 }
-
-int DocumentDistance_popcnt3(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig)
+*/
+int DocumentDistance_popcnt3(int sigwidth, const unsigned char *in_bsig, const unsigned char *in_bmask, const unsigned char *in_dsig)
 {
   int c = 0;
-  unsigned long long *query_sig = (unsigned long int *)in_bsig;
-  unsigned long long *mask_sig = (unsigned long int *)in_bmask;
-  unsigned long long *doc_sig = (unsigned long int *)in_dsig;
-  for (int i = 0; i < sigwidth / 64; i++) {
+  
+  #ifdef IS64BIT
+  const unsigned long long *query_sig = in_bsig;
+  const unsigned long long *mask_sig = in_bmask;
+  const unsigned long long *doc_sig = in_dsig;
+  for (int i = 0; i < sigwidth / 8 / sizeof(unsigned long long); i++) {
     c += __builtin_popcountll((doc_sig[i] ^ query_sig[i]) & mask_sig[i]);
   }
+  #else
+  const unsigned int *query_sig = in_bsig;
+  const unsigned int *mask_sig = in_bmask;
+  const unsigned int *doc_sig = in_dsig;
+  for (int i = 0; i < sigwidth / 8 / sizeof(unsigned int); i++) {
+    c += __builtin_popcount((doc_sig[i] ^ query_sig[i]) & mask_sig[i]);
+  }
+  #endif
   
   return c;
 }
-
+/*
 int DocumentDistance_ssse3_unrl(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig)
 {
   unsigned long long bsig[sigwidth / 64]; memcpy(bsig, in_bsig, sigwidth / 64);
@@ -307,7 +318,7 @@ int DocumentDistance_ssse3_unrl3(int sigwidth, unsigned char *in_bsig, unsigned 
   
   return ssse3_popcount3(data, sigwidth / 128);
 }
-
+*/
 int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig)
 {
   unsigned char bsig[sigwidth / 8]; memcpy(bsig, in_bsig, sigwidth / 8);
@@ -354,8 +365,8 @@ int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in
   return c;
 }
 
-int DocumentDistance(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig) {
-  return DocumentDistance_bitwise(sigwidth,in_bsig, in_bmask,in_dsig);
+int DocumentDistance(int sigwidth, const unsigned char *in_bsig, const unsigned char *in_bmask, const unsigned char *in_dsig) {
+  return DocumentDistance_popcnt3(sigwidth,in_bsig, in_bmask,in_dsig);
 }
 
 
