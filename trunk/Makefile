@@ -21,9 +21,16 @@ else
     CCFLAGS_EXTRA = -march=native -mtune=native -DIS64BIT
 endif
 
+
+ifeq ($(strip $(STATIC)),)
+    BUILD3 =
+else 
+    BUILD3 = -static
+endif
+
 #Putting -I/include in seems absolutely ridiculous, but the mingw-builds
 #mingw-w64 actually needs this. I don't get it either.
-LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread ${BUILD2}
+LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread ${BUILD2} ${BUILD3}
 CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include -mpopcnt
 
 OBJS = src/topsig-main.o \
@@ -47,6 +54,7 @@ src/topsig-document.o \
 src/topsig-issl.o \
 src/topsig-experimental-rf.o \
 src/topsig-popcnt.o \
+src/topsig-timer.o \
 src/superfasthash.o \
 src/ISAAC-rand.o
 

@@ -18,7 +18,7 @@ void FreeSearch(Search *);
 
 Signature *CreateQuerySignature(Search *S, const char *query);
 
-int DocumentDistance(int sigwidth, unsigned char *bsig, unsigned char *bmask, unsigned char *dsig);
+int DocumentDistance(int sigwidth, const unsigned char *bsig, const unsigned char *bmask, const unsigned char *dsig);
 
 Results *FindHighestScoring(Search *S, const int start, const int count, const int topk, unsigned char *bsig, unsigned char *bmask);
 
