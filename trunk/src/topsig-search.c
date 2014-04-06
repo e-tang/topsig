@@ -244,17 +244,17 @@ int DocumentDistance_popcnt3(int sigwidth, const unsigned char *in_bsig, const u
   int c = 0;
   
   #ifdef IS64BIT
-  const unsigned long long *query_sig = in_bsig;
-  const unsigned long long *mask_sig = in_bmask;
-  const unsigned long long *doc_sig = in_dsig;
-  for (int i = 0; i < sigwidth / 8 / sizeof(unsigned long long); i++) {
+  const unsigned long long *query_sig = (const unsigned long long *)in_bsig;
+  const unsigned long long *mask_sig = (const unsigned long long *)in_bmask;
+  const unsigned long long *doc_sig = (const unsigned long long *)in_dsig;
+  for (unsigned int i = 0; i < sigwidth / 8 / sizeof(unsigned long long); i++) {
     c += __builtin_popcountll((doc_sig[i] ^ query_sig[i]) & mask_sig[i]);
   }
   #else
-  const unsigned int *query_sig = in_bsig;
-  const unsigned int *mask_sig = in_bmask;
-  const unsigned int *doc_sig = in_dsig;
-  for (int i = 0; i < sigwidth / 8 / sizeof(unsigned int); i++) {
+  const unsigned int *query_sig = (const unsigned int *)in_bsig;
+  const unsigned int *mask_sig = (const unsigned int *)in_bmask;
+  const unsigned int *doc_sig = (const unsigned int *)in_dsig;
+  for (unsigned int i = 0; i < sigwidth / 8 / sizeof(unsigned int); i++) {
     c += __builtin_popcount((doc_sig[i] ^ query_sig[i]) & mask_sig[i]);
   }
   #endif
@@ -319,6 +319,7 @@ int DocumentDistance_ssse3_unrl3(int sigwidth, unsigned char *in_bsig, unsigned 
   return ssse3_popcount3(data, sigwidth / 128);
 }
 */
+/*
 int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in_bmask, unsigned char *in_dsig)
 {
   unsigned char bsig[sigwidth / 8]; memcpy(bsig, in_bsig, sigwidth / 8);
@@ -341,7 +342,7 @@ int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in
       c += (((v + (v >> 4)) & 0x0f0f0f0f0f0f0f0f) * 0x0101010101010101) >> 56;
     }
   } else
-  #endif /* 64BIT */
+  #endif
   if ((sizeof(unsigned int) == 4) && (sigwidth % 32 == 0)) {
     // 32-bit optimised version, only available if unsigned int is 32 bits and if the signature is a multiple
     // of 32 bits
@@ -368,24 +369,24 @@ int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in
   
   return c;
 }
-
+*/
 int DocumentDistance(int sigwidth, const unsigned char *in_bsig, const unsigned char *in_bmask, const unsigned char *in_dsig) {
   return DocumentDistance_popcnt3(sigwidth,in_bsig, in_bmask,in_dsig);
 }
 
 
-static int get_document_quality(Search *S, unsigned char *signature_header_vals)
+static int get_document_quality(unsigned char *signature_header_vals)
 {
   // the 'quality' field is the 4th field in the header
   return mem_read32(signature_header_vals + (3 * 4));
 }
 
-static int get_document_offset_begin(Search *S, unsigned char *signature_header_vals)
+static int get_document_offset_begin(unsigned char *signature_header_vals)
 {
   // the 'offset_begin' field is the 5th field in the header
   return mem_read32(signature_header_vals + (4 * 4));
 }
-static int get_document_offset_end(Search *S, unsigned char *signature_header_vals)
+static int get_document_offset_end(unsigned char *signature_header_vals)
 {
   // the 'offset_end' field is the 6th field in the header
   return mem_read32(signature_header_vals + (5 * 4));
@@ -528,9 +529,9 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
     unsigned char *signature = S->cache + sig_record_size * i + sig_offset;
     
     int dist = DocumentDistance(S->cfg.length, bsig, bmask, signature);
-    int qual = get_document_quality(S, signature_header_vals);
-    int offset_begin = get_document_offset_begin(S, signature_header_vals);
-    int offset_end = get_document_offset_end(S, signature_header_vals);
+    int qual = get_document_quality(signature_header_vals);
+    int offset_begin = get_document_offset_begin(signature_header_vals);
+    int offset_end = get_document_offset_end(signature_header_vals);
     
     const char *docid = (const char *)(signature_header + docid_offset);
     unsigned int docid_hash = SuperFastHash(docid, strlen(docid));

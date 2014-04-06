@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "topsig-thread.h"
 
 // NO_THREADING is an optional mode to disable the pthread dependency.
@@ -92,7 +93,7 @@ void ThreadYield()
 
 void *start_work_writer(void *sigcache_ptr)
 {
-  SignatureCache *C = sigcache_ptr;
+  assert(sigcache_ptr);
   for (;;) {
     if (finishup) break;
     SignatureFlush();

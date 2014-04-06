@@ -366,7 +366,6 @@ static void dumpsignature(Signature *sig)
   //int unused_6;
   //int unused_7;
   //int unused_8;
-  int docnamelen = cfg.docnamelen;
   //printf("Testing printf\n");
   //printf("Testing printf with val %d\n", 166);
   //printf("docnamelen: %d\n", docnamelen);
@@ -394,7 +393,7 @@ static void dumpsignature(Signature *sig)
   fwrite(bsig, 1, cfg.length / 8, cache.fp);
 }
 
-void SignatureWrite(SignatureCache *C, Signature *sig, const char *docid)
+void SignatureWrite(SignatureCache *C, Signature *sig)
 {
   // Write the signature to a file. This takes some care as
   // this needs to be a thread-safe function. SignatureFlush

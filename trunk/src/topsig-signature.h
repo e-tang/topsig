@@ -20,7 +20,7 @@ void SignatureDestroy(Signature *sig);
 void SignatureAdd(SignatureCache *, Signature *, const char *term, int count, int total_count);
 void SignatureAddOffset(SignatureCache *, Signature *, const char *term, int count, int total_count, int offset_begin, int offset_end);
 void SignatureSetValues(Signature *sig, Document *doc);
-void SignatureWrite(SignatureCache *, Signature *, const char *docid);
+void SignatureWrite(SignatureCache *, Signature *);
 void SignatureFlush();
 void SignaturePrint(Signature *);
 void FlattenSignature(Signature *, void *, void *);

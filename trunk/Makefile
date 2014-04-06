@@ -57,7 +57,6 @@ src/topsig-stats.o \
 src/topsig-document.o \
 src/topsig-issl.o \
 src/topsig-experimental-rf.o \
-src/topsig-popcnt.o \
 src/topsig-timer.o \
 src/topsig-exhaustive-docsim.o \
 src/superfasthash.o \

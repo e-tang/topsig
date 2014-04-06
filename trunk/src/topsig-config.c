@@ -19,7 +19,6 @@ void ConfigUpdate()
 {
   Process_InitCfg();
   Stop_InitCfg();
-  Stats_InitCfg();
   Stem_InitCfg();
   Signature_InitCfg();
   Progress_InitCfg();

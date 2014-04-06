@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sched.h>
+#include <assert.h>
 #include "topsig-semaphore.h"
 #include "topsig-atomic.h"
 #include "topsig-thread.h"
 
 void tsem_init(TSemaphore *S, int compat, int val)
 {
+  assert(compat==0);
   S->val = val;
 }
 

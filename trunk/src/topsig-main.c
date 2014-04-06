@@ -5,6 +5,7 @@
 #include "topsig-query.h"
 #include "topsig-topic.h"
 #include "topsig-issl.h"
+#include "topsig-stats.h"
 #include "topsig-exhaustive-docsim.h"
 
 #include "topsig-experimental-rf.h"
@@ -22,6 +23,11 @@ int main(int argc, const char **argv)
   ConfigCLI(argc, argv);
 
   ConfigUpdate();
+  
+  if (strcmp(argv[1], "index")==0 ||
+      strcmp(argv[1], "query")==0 ||
+      strcmp(argv[1], "topic")==0 ||
+      strcmp(argv[1], "experimental-rf")==0) Stats_InitCfg();
 
   if (strcmp(argv[1], "index")==0) RunIndex();
   else if (strcmp(argv[1], "query")==0) RunQuery();
