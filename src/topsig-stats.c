@@ -105,7 +105,16 @@ void Stats_InitCfg()
 
 void WriteStats()
 {
-  FILE *fp = fopen(Config("TERMSTATS-PATH-OUTPUT"), "wb");
+  FILE *fp;
+  if (Config("TERMSTATS-PATH-OUTPUT")) {
+    fp = fopen(Config("TERMSTATS-PATH-OUTPUT"), "wb");
+  } else if (Config("TERMSTATS-PATH")) {
+    fp = fopen(Config("TERMSTATS-PATH"), "wb");
+  } else {
+    fprintf(stderr, "Error: undefined termstats output path\n");
+    exit(1);
+  }
+  
   if (!fp) {
     fprintf(stderr, "Error: unable to write termstats\n");
     exit(1);

@@ -371,6 +371,7 @@ static ScoreTable Create_Score_Table(int signatures)
   S.score_hotlist_n = 0;
   return S;
 }
+/*
 static void Destroy_Score_Table(ScoreTable *S)
 {
   free(S->score);
@@ -379,7 +380,7 @@ static void Destroy_Score_Table(ScoreTable *S)
   S->score_hotlist = NULL;
   S->score_hotlist_n = 0;
 }
-
+*/
 typedef struct {
   int results;
   int *issl_scores;
@@ -664,7 +665,7 @@ void RunSearchISLTurbo()
   
   int job_count;
   if (thread_count > 1)
-    job_count = thread_count * 10;
+    job_count = thread_count;
   else
     job_count = 1;
     

@@ -180,6 +180,10 @@ TOPIC-OUTPUT-K = 100
 # TOPIC-OUTPUT-PATH - path to output run results to
 TOPIC-OUTPUT-PATH = output.trec
 
+# DUPLICATES_OK - multiple results with identical names can be output
+# for a single topic if this is given a value of 1.
+#DUPLICATES_OK = 0
+
 #----------------------------------------------------------------------
 # MULTITHREADING
 #----------------------------------------------------------------------
@@ -233,14 +237,37 @@ OUTPUT-PERIOD = 1000
 # depending on the site of the file.
 #TERMSTATS-PATH = docstats.stat
 # TERMSTATS-PATH-OUTPUT - path to write the term statistics out of in
-# statistics collection mode.
+# statistics collection mode. If this isn't specified but
+# TERMSTATS-PATH is, that is used instead.
 #TERMSTATS-PATH-OUTPUT = docstats.stat
 # TERMSTATS-SIZE - in statistics collection mode, number of term stats
 # to keep. This should be set to a high enough number to hold every
 # unique term in the collection as additional terms will be ignored
 # once this number is reached. It uses TERMSTATS-SIZE * 72 bytes
 # of memory.
-#TERMSTATS-SIZE = 1000000
+TERMSTATS-SIZE = 1000000
+
+#----------------------------------------------------------------------
+# ISSL
+#----------------------------------------------------------------------
+
+# ISL-PATH is the path to the ISSL table file.
+#ISL-PATH = signature.issl
+
+# ISL_SLICEWIDTH - the number of bits for each ISSL slice.
+ISL_SLICEWIDTH = 16
+
+# SEARCH-DOC-THREADS - the number of threads to use when searching with ISSL
+SEARCH-DOC-THREADS = 10
+
+# SEARCH-DOC-TOPK - the number of results to return per ISSL search
+SEARCH-DOC-TOPK = 30
+
+# IDs of the first and last signatures in the signature file to search
+# for. SEARCH-DOC-FIRST = 0 and SEARCH-DOC-LAST = 9999 will search for
+# 10000 signatures.
+SEARCH-DOC-FIRST = 0
+SEARCH-DOC-LAST = 9999
 
 #----------------------------------------------------------------------
 # MISCELLANEOUS
