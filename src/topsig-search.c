@@ -350,6 +350,10 @@ int DocumentDistance_old(int sigwidth, unsigned char *in_bsig, unsigned char *in
     unsigned int *doc_sig = (unsigned int *)dsig;
     unsigned int v;
     
+    //fprintf(stderr, "Address of query_sig = %p\n", query_sig);
+    //fprintf(stderr, "Address of mask_sig = %p\n", mask_sig);
+    //fprintf(stderr, "Address of doc_sig = %p\n", doc_sig);
+    
     for (int i = 0; i < sigwidth / 32; i++) {
       v = (doc_sig[i] ^ query_sig[i]) & mask_sig[i];
       v = v - ((v >> 1) & 0x55555555);
@@ -453,7 +457,9 @@ void ApplyFeedback(Search *S, Results *R, const char *feedback, int k)
 
 void MergeResults(Results *base, Results *add)
 {
-  int duplicates_ok = atoi(Config("DUPLICATES_OK"));
+  int duplicates_ok = 0;
+  if (Config("DUPLICATES_OK"))
+    duplicates_ok = atoi(Config("DUPLICATES_OK"));
   struct Result res[base->k + add->k];
   for (int i = 0; i < base->k; i++) {
     res[i] = base->res[i];
@@ -513,7 +519,9 @@ Results *FindHighestScoring(Search *S, const int start, const int count, const i
   int last_lowest_dist = INT_MAX;
   int last_lowest_qual = -1;
   int i;
-  int duplicates_ok = atoi(Config("DUPLICATES_OK"));
+  int duplicates_ok = 0;
+  if (Config("DUPLICATES_OK"))
+    duplicates_ok = atoi(Config("DUPLICATES_OK"));
   for (i = start; i < start+count; i++) {
     unsigned char *signature_header = S->cache + sig_record_size * i;
     unsigned char *signature_header_vals = signature_header + S->cfg.docnamelen + 1;

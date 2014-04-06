@@ -364,3 +364,64 @@ void TBPClose(TBPHandle *H)
   free(H->workthreads);
   free(H);
 }
+
+// New thread pool implementation, because why not have like 5 of these?
+
+typedef struct {
+  pthread_mutex_t lock;
+  int jobs;
+  void **job_inputs;
+  void *thread_input;
+  int *job_statuses;
+  void *(*start_routine)(void*,void*);
+} DWTP;
+
+void *DWTP_Worker(void *in) {
+  DWTP *dwtp = in;
+  
+  for (;;) {
+    pthread_mutex_lock(&(dwtp->lock));
+    int my_job = -1;
+    for (int i = 0; i < dwtp->jobs; i++) {
+      if (dwtp->job_statuses[i] == 0) {
+        my_job = i;
+        dwtp->job_statuses[i] = 1;
+        break;
+      }
+    }
+    pthread_mutex_unlock(&(dwtp->lock));
+    if (my_job == -1) break;
+    dwtp->start_routine(dwtp->job_inputs[my_job], dwtp->thread_input);
+  }
+  
+  return NULL;
+}
+
+// Generic job-splitting routine
+void DivideWorkTP(void **job_inputs, void **thread_inputs, void *(*start_routine)(void*,void*), int jobs, int threads)
+{
+  pthread_t workthreads[threads];
+  DWTP dwtp;
+  
+  pthread_mutex_init(&dwtp.lock, NULL);
+  dwtp.jobs = jobs;
+  dwtp.job_inputs = job_inputs;
+  dwtp.thread_input = NULL;
+  dwtp.job_statuses = malloc(sizeof(int) * jobs);
+  dwtp.start_routine = start_routine;
+  
+  for (int i = 0; i < jobs; i++) {
+    dwtp.job_statuses[i] = 0;
+  }
+  DWTP per_dwtp[threads];
+  for (int i = 0; i < threads; i++) {
+    per_dwtp[i] = dwtp;
+    per_dwtp[i].thread_input = thread_inputs[i];
+    pthread_create(workthreads+i, NULL, DWTP_Worker, &per_dwtp[i]);
+  }
+  
+  for (int i = 0; i < threads; i++) {
+    pthread_join(workthreads[i], NULL);
+  }
+  free(dwtp.job_statuses);
+}

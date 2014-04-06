@@ -124,6 +124,7 @@ int main(int argc, char **argv)
             }
           }
           fprintf(stderr, "Reading %s [**********] %d/%d\n", argv[argi], file_sig_count, records);
+          printf("%s %d\n", argv[argi], file_sig_count);
         } else {
           fprintf(stderr, "Unable to open input file %s\n", argv[argi]);
         }

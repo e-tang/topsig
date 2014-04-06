@@ -8,17 +8,21 @@ else
     BUILD = -g3 -pg
 endif
 
-ifeq ($(strip $(64BIT)),)
-    BUILD2 = -Wl,--large-address-aware
+ifeq ($(strip $(32BIT)),)
+  BUILD2 =
+  ifeq "${shell uname -s}" "Darwin"
+    CCFLAGS_EXTRA = -DIS64BIT
+  else
+    CCFLAGS_EXTRA = -march=native -mtune=native -DIS64BIT
+  endif
+else 
+  BUILD2 = -Wl,--large-address-aware
     
   ifeq "${shell uname -s}" "Darwin"
     CCFLAGS_EXTRA =
   else
     CCFLAGS_EXTRA = -march=i486 -mtune=native 
   endif
-else 
-    BUILD2 =
-    CCFLAGS_EXTRA = -march=native -mtune=native -DIS64BIT
 endif
 
 
@@ -31,7 +35,7 @@ endif
 #Putting -I/include in seems absolutely ridiculous, but the mingw-builds
 #mingw-w64 actually needs this. I don't get it either.
 LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread ${BUILD2} ${BUILD3}
-CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include -mpopcnt
+CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
@@ -55,6 +59,7 @@ src/topsig-issl.o \
 src/topsig-experimental-rf.o \
 src/topsig-popcnt.o \
 src/topsig-timer.o \
+src/topsig-exhaustive-docsim.o \
 src/superfasthash.o \
 src/ISAAC-rand.o
 
@@ -90,6 +95,12 @@ wsj-cosine-sim:		src/tools/wsj-cosine-sim.c src/topsig-porterstemmer.c
 topcut:		src/tools/topcut.c
 		gcc ${CCFLAGS} -o topcut src/tools/topcut.c
 
+topfilt:		src/tools/topfilt.c
+		gcc ${CCFLAGS} -o topfilt src/tools/topfilt.c
+
+sigview:		src/tools/sigview.c
+		gcc ${CCFLAGS} -o sigview src/tools/sigview.c
+
 plagtest:		src/tools/plagtest.c
 		gcc ${CCFLAGS} -o plagtest src/tools/plagtest.c
 		
@@ -101,3 +112,16 @@ sigfile_to_ktree:		src/tools/sigfile_to_ktree.c
 
 plag-cluster:		src/tools/plag-cluster.c
 		gcc ${CCFLAGS} -Wl,--large-address-aware -o plag-cluster src/tools/plag-cluster.c
+		
+hdr_eval:		src/tools/hdr_eval.c
+		gcc ${CCFLAGS} -o hdr_eval src/tools/hdr_eval.c
+
+hdr_eval_csim:		src/tools/hdr_eval_csim.c
+		gcc ${CCFLAGS} -o hdr_eval_csim src/tools/hdr_eval_csim.c
+
+topic2docname:		src/tools/topic2docname.c
+		gcc ${CCFLAGS} -o topic2docname src/tools/topic2docname.c
+
+resmerge:		src/tools/resmerge.c
+		gcc ${CCFLAGS} -o resmerge src/tools/resmerge.c
+

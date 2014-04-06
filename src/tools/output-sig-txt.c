@@ -32,32 +32,28 @@ void readSigHeader(FILE *fp)
 int main(int argc, char **argv)
 {
   if (argc < 3) {
-    fprintf(stderr, "usage: {input sigfile} {output sigfile}\n");
+    fprintf(stderr, "usage: {input sigfile} {output txtfile}\n");
     return 0;
   }
   FILE *fi;
   FILE *fo;
+  int sigs_written = 0;
   if ((fi = fopen(argv[1], "rb"))) {
-    if ((fo = fopen(argv[2], "wb"))) {
+    if ((fo = fopen(argv[2], "w"))) {
       readSigHeader(fi);
-      rewind(fi);
-      unsigned char *fileheader_buffer = malloc(cfg.headersize);
-      fread(fileheader_buffer, 1, cfg.headersize, fi);
-      fwrite(fileheader_buffer, 1, cfg.headersize, fo);
-      free(fileheader_buffer);
-      
       unsigned char *sigheader_buffer = malloc(cfg.sig_offset);
       unsigned char *sig_buffer = malloc(cfg.sig_width / 8);
       
-      for (;;) {
-        if (fread(sigheader_buffer, 1, cfg.sig_offset, fi) == 0) break;
-        fwrite(sigheader_buffer, 1, cfg.sig_offset, fo);
+      for (int i = 0; i < 1048576; i++) {
+        fread(sigheader_buffer, 1, cfg.sig_offset, fi);
         fread(sig_buffer, 1, cfg.sig_width / 8, fi);
-        int i;
-        for (i = 0; i < cfg.sig_width / 8; i++) {
-          fputc(rand() & 0xFF, fo);
+        for (int j = 0; j < cfg.sig_width / 16; j++) {
+          // Little endian
+          int val = sig_buffer[j * 2] | (sig_buffer[j * 2 + 1] << 8);
+          fprintf(fo, "%d%s", val, ((j+1) < cfg.sig_width / 16) ? " " : "\n");
         }
       }
+      
       free(sigheader_buffer);
       free(sig_buffer);
 

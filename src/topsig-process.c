@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 #include "uthash.h"
 #include "topsig-process.h"
 #include "topsig-config.h"
@@ -80,9 +81,22 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
   // For thread safety, the caller has to track currdoc and lastdoc.
   // This function returns 'currdoc' normally, or NULL in the case of
   // a merge.
+
+  docterm *curr, *tmp;
   
   if (!C || !lastdoc) return currdoc;
-    
+  
+  //fprintf(stderr, "%s %p %p\n", doc->docid, currdoc, lastdoc);
+  /*
+  char fp_name[128];
+  sprintf(fp_name, "_termstats2/%s", doc->docid);
+  FILE *fp = fopen(fp_name, "w");
+  HASH_ITER(hh, lastdoc, curr, tmp) {
+    fprintf(fp, "%s %d\n", curr->term, curr->count);
+  }
+  fclose(fp);
+  */
+  
   int merge = 0;
   if (HASH_COUNT(lastdoc) < cfg.split.min) {
     if (HASH_COUNT(lastdoc) + HASH_COUNT(currdoc) < cfg.split.max) {
@@ -95,7 +109,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
   
   Signature *sig = NewSignature(doc->docid);
     
-  docterm *curr, *tmp;
+
   
   int unique_terms = 0;
   int total_terms = 0;
@@ -164,21 +178,28 @@ void ProcessFile(SignatureCache *C, Document *doc)
       default:
         break;
       case FILTER_XML:
-        if (*p == '&') xml_inelement = 1;
-        if (*p == '<') xml_intag = 1;
+        if (*p == '&')
+          if (!xml_intag)
+            xml_inelement = 1;
+        if (*p == '<') {
+          xml_intag = 1;
+          xml_inelement = 0;
+        }
         if (xml_inelement && (*p == ';')) {
           xml_inelement = 0;
           filterok = 0;
         }
         if (xml_intag && (*p == '>')) {
           xml_intag = 0;
+          xml_inelement = 0;
           filterok = 0;
         }
         if (xml_intag || xml_inelement) filterok = 0;
         break;
     }
+    //if (strcmp(doc->docid, "2572")==0)
+      //fprintf(stderr, "%d%d[%d%d]%c", cfg.charmask[(int)*p], filterok, xml_inelement, xml_intag, *p);
     if (cfg.charmask[(int)*p] && filterok) {
-      
       if (cterm_len < 1023) {
         if (term_pos == -1) term_pos = p - doc->data;
         cterm[cterm_len++] = *p;
@@ -233,7 +254,7 @@ void Process_InitCfg()
   int alpha = lc_strcmp(Config("CHARMASK"),"alpha")==0 ? 1 : 0;
   int alnum = lc_strcmp(Config("CHARMASK"),"alnum")==0 ? 1 : 0;
   int all = lc_strcmp(Config("CHARMASK"),"all")==0 ? 1 : 0;
-  
+    
   for (int i = 0; i < 256; i++) {
     cfg.charmask[i] = (isalpha(i) && alpha) || (isalnum(i) && alnum) || (isgraph(i) && all);
   }
