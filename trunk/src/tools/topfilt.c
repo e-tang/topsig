@@ -2,6 +2,14 @@
 #include <stdlib.h>
 
 #include "../topsig-global.h"
+#include "uthash.h"
+
+typedef struct {
+  char docname[32];
+  UT_hash_handle hh;
+} filt;
+
+filt *filterhash = NULL;
 
 static struct {
   int headersize;
@@ -31,14 +39,24 @@ void readSigHeader(FILE *fp)
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) {
-    fprintf(stderr, "usage: {input sigfile} {output sigfile}\n");
+  if (argc < 5) {
+    fprintf(stderr, "usage: {input sigfile} {output sigfile} {document ids to filter} {0=exclude 1=include}\n");
     return 0;
   }
   FILE *fi;
   FILE *fo;
+  FILE *fids;
   if ((fi = fopen(argv[1], "rb"))) {
     if ((fo = fopen(argv[2], "wb"))) {
+      fids = fopen(argv[3], "rb");
+      for (;;) {
+        char docname[32];
+        if (fscanf(fids, "%s", docname) < 1) break;
+        filt *f = malloc(sizeof(filt));
+        strcpy(f->docname, docname);
+        HASH_ADD_STR(filterhash, docname, f);
+      }
+      int do_filter = atoi(argv[4]);
       readSigHeader(fi);
       rewind(fi);
       unsigned char *fileheader_buffer = malloc(cfg.headersize);
@@ -51,16 +69,20 @@ int main(int argc, char **argv)
       
       for (;;) {
         if (fread(sigheader_buffer, 1, cfg.sig_offset, fi) == 0) break;
-        fwrite(sigheader_buffer, 1, cfg.sig_offset, fo);
         fread(sig_buffer, 1, cfg.sig_width / 8, fi);
-        int i;
-        for (i = 0; i < cfg.sig_width / 8; i++) {
-          fputc(rand() & 0xFF, fo);
+        
+        filt *f;
+        HASH_FIND_STR(filterhash, (char *)sigheader_buffer, f);
+        int exclude = f == NULL ? 1 : 0;
+        int include = f == NULL ? 0 : 1;
+        if (do_filter ? exclude : include) {
+          fwrite(sigheader_buffer, 1, cfg.sig_offset, fo);
+          fwrite(sig_buffer, 1, cfg.sig_width / 8, fo);
         }
       }
       free(sigheader_buffer);
       free(sig_buffer);
-
+      fclose(fids);
       fclose(fo);
     } else {
       fprintf(stderr, "Unable to open output file\n");

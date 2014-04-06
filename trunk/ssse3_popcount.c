@@ -37,10 +37,10 @@
 
 #define MAX_CHUNKS 2048
 
-static uint8_t buffer[16*MAX_CHUNKS] __aligned__;
+uint8_t buffer[16*MAX_CHUNKS] __aligned__;
 
 // lookup for SSE
-static uint8_t POPCOUNT_4bit[16] __aligned__ = {
+uint8_t POPCOUNT_4bit[16] __aligned__ = {
 	/* 0 */ 0,
 	/* 1 */ 1,
 	/* 2 */ 1,
@@ -63,7 +63,7 @@ static uint8_t POPCOUNT_4bit[16] __aligned__ = {
 // ---- lookup[256] -------------------------------------------------------
 
 // uint32_t instead of uint8_t, to avoid zero-extend
-static uint32_t POPCOUNT_8bit[256] __aligned__ = {
+uint32_t POPCOUNT_8bit[256] __aligned__ = {
 	/* 0 */ 0, /* 1 */ 1, /* 2 */ 1, /* 3 */ 2,
 	/* 4 */ 1, /* 5 */ 2, /* 6 */ 2, /* 7 */ 3,
 	/* 8 */ 1, /* 9 */ 2, /* a */ 2, /* b */ 3,
@@ -130,7 +130,7 @@ static uint32_t POPCOUNT_8bit[256] __aligned__ = {
 	/* fc */ 6, /* fd */ 7, /* fe */ 7, /* ff */ 8
 };
 
-static uint32_t c_popcount(uint8_t* buffer, int chunks16) {
+uint32_t c_popcount(uint8_t* buffer, int chunks16) {
 	uint32_t dummy __attribute__((unused));
 	uint32_t n = 0;
 
@@ -594,7 +594,6 @@ uint32_t ssse3_popcount3(uint8_t* buffer, int chunks16) {
 	return result;
 }
 
-/*
 
 #define OPT_COUNT 8
 
@@ -744,5 +743,3 @@ int main(int argc, char* argv[]) {
 }
 
 // eof
-
-*/

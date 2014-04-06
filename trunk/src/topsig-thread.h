@@ -24,4 +24,7 @@ TBPHandle *TBPInit(int threads, void **threaddata);
 void **TBPDivideWork(TBPHandle *H, void *job_input, void *(*start_routine)(void*, void*));
 void TBPClose(TBPHandle *H);
 
+// Traditional thread pool
+void DivideWorkTP(void **job_inputs, void **thread_inputs, void *(*start_routine)(void*, void*), int jobs, int threads);
+
 #endif
