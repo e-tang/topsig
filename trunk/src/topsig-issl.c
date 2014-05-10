@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 #include "topsig-global.h"
 #include "topsig-issl.h"
 #include "topsig-timer.h"
@@ -371,7 +372,6 @@ static ScoreTable Create_Score_Table(int signatures)
   S.score_hotlist_n = 0;
   return S;
 }
-/*
 static void Destroy_Score_Table(ScoreTable *S)
 {
   free(S->score);
@@ -380,7 +380,7 @@ static void Destroy_Score_Table(ScoreTable *S)
   S->score_hotlist = NULL;
   S->score_hotlist_n = 0;
 }
-*/
+
 typedef struct {
   int results;
   int *issl_scores;
@@ -416,6 +416,7 @@ static void Destroy_Result_List(ResultList *R)
 
 static void Output_Results(int topic_id, const ResultList *list, int top_k)
 {
+  if (list->results < top_k) top_k = list->results;
   for (int i = 0; i < top_k; i++) {
     //printf("%d. %d (%d) - %s\n", i, list->docids[i], list->distances[i], list->docnames[i]);
     printf("%d Q0 %s %d %d Topsig-ISSL %d\n", topic_id, list->docnames[i], i + 1, 1000000 - i, list->distances[i]);
@@ -424,15 +425,16 @@ static void Output_Results(int topic_id, const ResultList *list, int top_k)
 
 ResultList Summarise(ScoreTable **scts, int scts_n, int top_k, int threadid)
 {
-  ResultList R = Create_Result_List(top_k);
   int R_lowest_score = 0;
   int R_lowest_score_i = 0;
   
   if (scts[0]->score_hotlist_n < top_k) {
-    fprintf(stderr, "%d Error: not enough entries in hotlist (%d) to make up topk (%d). Reduce topk and try again.\n", threadid, scts[0]->score_hotlist_n, top_k);
-    exit(1);
+    //fprintf(stderr, "%d Error: not enough entries in hotlist (%d) to make up topk (%d). Reduce topk and try again.\n", threadid, scts[0]->score_hotlist_n, top_k);
+    //exit(1);
+    top_k = scts[0]->score_hotlist_n;
   }
   
+  ResultList R = Create_Result_List(top_k);
   for (int sct_i = 0; sct_i < scts_n; sct_i++) {
     ScoreTable *sct = scts[sct_i];
   
@@ -476,8 +478,36 @@ static int clarify_compar(const void *A, const void *B)
   return list->distances[a->i] - list->distances[b->i];
 }
 
-static void Clarify_Results(const SignatureHeader *cfg, ResultList *list, const unsigned char *sig_file, const unsigned char *sig)
+
+static void ISSLPseudo(const SignatureHeader *cfg, ResultList *list, const unsigned char *sig_file, unsigned char *sig_out, int sample)
 {
+    double dsig[cfg->sig_width];
+    memset(&dsig, 0, cfg->sig_width * sizeof(double));
+    double sample_2 = ((double)sample) * 8;
+    
+    for (int i = 0; i < sample; i++) {
+        double di = i;
+        const unsigned char *cursig = sig_file + (size_t)cfg->sig_record_size * list->docids[i] + cfg->sig_offset;
+        for (int j = 0; j < cfg->sig_width; j++) {
+            dsig[j] += exp(-di*di/sample_2) * ((cursig[j/8] & (1 << (7 - (j%8))))>0?1.0:-1.0); 
+        }
+    }
+    
+    Signature *sig = NewSignature("pseudo-query");
+    SignatureFillDoubles(sig, dsig);
+    
+    //unsigned char bsig[cfg->sig_width / 8];
+    unsigned char bmask[cfg->sig_width / 8];
+    
+    FlattenSignature(sig, sig_out, bmask);
+
+    SignatureDestroy(sig);    
+}
+
+static void Clarify_Results(const SignatureHeader *cfg, ResultList *list, const unsigned char *sig_file, const unsigned char *sig, int top_k)
+{
+  if (top_k == -1) top_k = list->results;
+  if (top_k > list->results) top_k = list->results;
   static unsigned char *mask = NULL;
   if (!mask) {
     mask = malloc(cfg->sig_width / 8);
@@ -486,9 +516,9 @@ static void Clarify_Results(const SignatureHeader *cfg, ResultList *list, const 
   
   //list->docnames = malloc(sizeof(char *) * list->results);
   
-  ClarifyEntry *clarify = malloc(sizeof(ClarifyEntry) * list->results);
+  ClarifyEntry *clarify = malloc(sizeof(ClarifyEntry) * top_k);
   
-  for (int i = 0; i < list->results; i++) {
+  for (int i = 0; i < top_k; i++) {
     const unsigned char *cursig = sig_file + ((size_t)cfg->sig_record_size * list->docids[i] + cfg->sig_offset);
     list->distances[i] = DocumentDistance(cfg->sig_width, sig, mask, cursig);
     list->docnames[i] = (const char *)(sig_file + ((size_t)cfg->sig_record_size * list->docids[i]));
@@ -496,12 +526,17 @@ static void Clarify_Results(const SignatureHeader *cfg, ResultList *list, const 
     clarify[i].list = list;
     clarify[i].i = i;
   }
-  qsort(clarify, list->results, sizeof(ClarifyEntry), clarify_compar);
+  qsort(clarify, top_k, sizeof(ClarifyEntry), clarify_compar);
   
   ResultList newlist = Create_Result_List(list->results);  
   //newlist.docnames = malloc(sizeof(char *) * list->results);
   for (int i = 0; i < list->results; i++) {
-    int j = clarify[i].i;
+    int j;
+    if (i < top_k) {
+      j = clarify[i].i;
+    } else {
+      j = i;
+    }
     newlist.issl_scores[i] = list->issl_scores[j];
     newlist.distances[i] = list->distances[j];
     newlist.docids[i] = list->docids[j];
@@ -601,6 +636,7 @@ static void *Throughput_Job(void *input, void *thread_data)
   int n_variants_ceasenew = T->v.n_variants_ceasenew;
   T->output = malloc(sizeof(ResultList) * doc_count);
   int top_k = T->top_k;
+  unsigned char *pseudo_sig = malloc(sig_cfg->sig_record_size);
   
   ScoreTable scores = TP->scores;
   
@@ -620,7 +656,11 @@ static void *Throughput_Job(void *input, void *thread_data)
     
     ScoreTable *sct[1] = {&scores};
     T->output[doc_i] = Summarise(sct, 1, top_k, TP->threadid);
-    Clarify_Results(sig_cfg, &T->output[doc_i], sig_file, sig);
+    Clarify_Results(sig_cfg, &T->output[doc_i], sig_file, sig, -1);
+    if (0) {
+      ISSLPseudo(sig_cfg, &T->output[doc_i], sig_file, pseudo_sig, 3);
+      Clarify_Results(sig_cfg, &T->output[doc_i], sig_file, pseudo_sig, 10);
+    }
     doc_i++;
   }
   
@@ -665,7 +705,7 @@ void RunSearchISLTurbo()
   
   int job_count;
   if (thread_count > 1)
-    job_count = thread_count;
+    job_count = thread_count * 10;
   else
     job_count = 1;
     

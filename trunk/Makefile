@@ -35,7 +35,7 @@ endif
 #Putting -I/include in seems absolutely ridiculous, but the mingw-builds
 #mingw-w64 actually needs this. I don't get it either.
 LDFLAGS = -lm -lz -lbz2 ${BUILD} -pthread ${BUILD2} ${BUILD3}
-CCFLAGS = -W -Wall -std=c99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include
+CCFLAGS = -W -Wall -std=gnu99 ${BUILD} ${CCFLAGS_EXTRA} -pthread -I/include
 
 OBJS = src/topsig-main.o \
 src/topsig-config.o \
@@ -124,3 +124,8 @@ topic2docname:		src/tools/topic2docname.c
 resmerge:		src/tools/resmerge.c
 		gcc ${CCFLAGS} -o resmerge src/tools/resmerge.c
 
+col2csv:		src/tools/col2csv.c
+		gcc ${CCFLAGS} -o col2csv src/tools/col2csv.c
+
+topshuf:		src/tools/topshuf.c
+		gcc ${CCFLAGS} -o topshuf src/tools/topshuf.c
