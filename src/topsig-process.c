@@ -27,6 +27,7 @@ static struct {
     unsigned int max;
   } split;
   enum {FILTER_NONE, FILTER_XML} filter;
+  int dinesha;
 } cfg;
 
 typedef struct {
@@ -119,7 +120,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
     total_terms += curr->count;
   }
   HASH_ITER(hh, lastdoc, curr, tmp) {
-    SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end);
+    SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end, cfg.dinesha);
     HASH_DEL(lastdoc, curr);
     free(curr);
   }
@@ -129,7 +130,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
       total_terms += curr->count;
     }
     HASH_ITER(hh, currdoc, curr, tmp) {
-      SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end);
+      SignatureAddOffset(C, sig, curr->term, curr->count, total_terms, curr->term_begin, curr->term_end, cfg.dinesha);
       HASH_DEL(currdoc, curr);
       free(curr);
     }
@@ -140,7 +141,7 @@ static docterm *createsig(SignatureCache *C, docterm *currdoc, docterm *lastdoc,
   doc->stats.total_terms = total_terms;
   
   SignatureSetValues(sig, doc);
-  SignatureWrite(C, sig);
+  SignatureWrite(C, sig, doc->docid);
   return currdoc;
 }
 
@@ -269,6 +270,10 @@ void Process_InitCfg()
   
   cfg.filter = FILTER_NONE;
   if (lc_strcmp(Config("TARGET-FORMAT-FILTER"),"xml")==0) cfg.filter = FILTER_XML;
+
+  cfg.dinesha = 0;
+  if (lc_strcmp(Config("DINESHA-TERMWEIGHTS"),"true")==0) cfg.dinesha = 1;
   
   cfg.initialised = 1;
 }
+

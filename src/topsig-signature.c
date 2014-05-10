@@ -173,16 +173,37 @@ static void sig_SKIP_add(int *, randctx *);
 
 // Signature term cache setup
 
-void SignatureAddOffset(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, int offset_begin, int offset_end)
+void SignatureAddOffset(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, int offset_begin, int offset_end, int dinesha)
 {
-  SignatureAdd(C, sig, term, count, total_count);
+  double weight = 1.0;
+  char *term_tmp = NULL;
+  const char *term_tmp_const = term;
+  if (dinesha) {
+    const char *p = strchr(term, ':');
+    if (p) {
+      int termlen = p - term;
+      term_tmp = malloc(termlen + 1);
+      strncpy(term_tmp, term, termlen);
+      term_tmp[termlen] = '\0';
+      weight = atof(p+1);
+      term_tmp_const = term_tmp;
+    }
+  }
+  fprintf(stderr, "SignatureAddOffset(%s) %d\n", term_tmp_const, dinesha);
+  SignatureAddWeighted(C, sig, term_tmp_const, count, total_count, weight);
   if (sig->offset_begin > offset_begin) sig->offset_begin = offset_begin;
   if (sig->offset_end < offset_end) sig->offset_end = offset_end;
+  if (term_tmp) free(term_tmp);
 }
 
 void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
 {
-  int weight = count;
+  SignatureAddWeighted(C, sig, term, count, total_count, 1.0);
+}
+
+void SignatureAddWeighted(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, double weight_multiplier)
+{
+  int weight = count * 1000;
   
   int termStats = TermFrequencyStats(term);
   if (termStats != -1) {
@@ -195,6 +216,8 @@ void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count
 //        return;
     }
   }
+
+  weight *= weight_multiplier;
   
   //printf("SignatureAdd() in\n");fflush(stdout);
   int sigarray[cfg.length];
@@ -366,6 +389,7 @@ static void dumpsignature(Signature *sig)
   //int unused_6;
   //int unused_7;
   //int unused_8;
+  int docnamelen = cfg.docnamelen;
   //printf("Testing printf\n");
   //printf("Testing printf with val %d\n", 166);
   //printf("docnamelen: %d\n", docnamelen);
@@ -393,7 +417,7 @@ static void dumpsignature(Signature *sig)
   fwrite(bsig, 1, cfg.length / 8, cache.fp);
 }
 
-void SignatureWrite(SignatureCache *C, Signature *sig)
+void SignatureWrite(SignatureCache *C, Signature *sig, const char *docid)
 {
   // Write the signature to a file. This takes some care as
   // this needs to be a thread-safe function. SignatureFlush
