@@ -175,6 +175,13 @@ static void sig_SKIP_add(int *, randctx *);
 
 void SignatureAddOffset(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, int offset_begin, int offset_end, int dinesha)
 {
+  SignatureAdd(C, sig, term, count, total_count, dinesha);
+  if (sig->offset_begin > offset_begin) sig->offset_begin = offset_begin;
+  if (sig->offset_end < offset_end) sig->offset_end = offset_end;
+}
+
+void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, int dinesha)
+{
   double weight = 1.0;
   char *term_tmp = NULL;
   const char *term_tmp_const = term;
@@ -189,20 +196,13 @@ void SignatureAddOffset(SignatureCache *C, Signature *sig, const char *term, int
       term_tmp_const = term_tmp;
     }
   }
-  fprintf(stderr, "SignatureAddOffset(%s) %d\n", term_tmp_const, dinesha);
   SignatureAddWeighted(C, sig, term_tmp_const, count, total_count, weight);
-  if (sig->offset_begin > offset_begin) sig->offset_begin = offset_begin;
-  if (sig->offset_end < offset_end) sig->offset_end = offset_end;
   if (term_tmp) free(term_tmp);
-}
-
-void SignatureAdd(SignatureCache *C, Signature *sig, const char *term, int count, int total_count)
-{
-  SignatureAddWeighted(C, sig, term, count, total_count, 1.0);
 }
 
 void SignatureAddWeighted(SignatureCache *C, Signature *sig, const char *term, int count, int total_count, double weight_multiplier)
 {
+  //fprintf(stderr, "[%s]-%f\n", term, weight_multiplier);
   int weight = count * 1000;
   
   int termStats = TermFrequencyStats(term);

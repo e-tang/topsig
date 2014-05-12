@@ -35,6 +35,7 @@ struct Search {
     int threads;
     
     int pseudofeedback;
+    int dinesha;
   } cfg;
 };
 
@@ -96,6 +97,9 @@ Search *InitSearch()
   if (C) {
     S->cfg.pseudofeedback = atoi(C);
   }
+  
+  S->cfg.dinesha = 0;
+  if (lc_strcmp(Config("DINESHA-TERMWEIGHTS"),"true")==0) S->cfg.dinesha = 1;
   
   // Read config info
   
@@ -162,7 +166,7 @@ Signature *CreateQuerySignature(Search *S, const char *query)
         Stem(term);
         
         if (!IsStopword(term)) {
-          SignatureAdd(S->sigcache, sig, term, 1, 3);
+          SignatureAdd(S->sigcache, sig, term, 1, 3, S->cfg.dinesha);
         }
         termstart = NULL;
       }
