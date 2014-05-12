@@ -31,41 +31,46 @@ void readSigHeader(FILE *fp)
 
 int main(int argc, char **argv)
 {
-  if (argc < 4) {
-    fprintf(stderr, "usage: {input sigfile} {input results file} {output results file}\n");
+  if (argc < 2) {
+    fprintf(stderr, "usage: {input sigfile} (input results file) (output results file)\n");
     return 0;
   }
   FILE *fsig;
   FILE *fi;
   FILE *fo;
+  
+  
   if ((fsig = fopen(argv[1], "rb"))) {
-    if ((fi = fopen(argv[2], "r"))) {
+    if (argc == 3)
+      fi = fopen(argv[2], "r");
+    else
+      fi = stdin;
+    if (argc == 4)
       fo = fopen(argv[3], "w");
+    else
+      fo = stdout;
 
-      readSigHeader(fsig);
-      fseek(fsig, 0, SEEK_END);
-      int sigcount = (ftell(fsig) - cfg.headersize) / cfg.sig_record_size;
-      fseek(fsig, cfg.headersize, SEEK_SET);
-      
-      //unsigned char *sigheader_buffer = malloc(cfg.sig_offset);
-      //unsigned char *sig_buffer = malloc(cfg.sig_width / 8);
-      unsigned char *sig_buffer = malloc(cfg.sig_record_size * sigcount);
-      fread(sig_buffer, cfg.sig_record_size, sigcount, fsig);
-      
-      int topic_id;
-      char topic_rem[4096];
-      for (;;) {
-        if (fscanf(fi, "%d %[^\n]\n", &topic_id, topic_rem) < 2) break;
-        char *docname = (char *)sig_buffer + cfg.sig_record_size * topic_id;
-        fprintf(fo, "%s %s\n", docname, topic_rem);
-      }
-
-      free(sig_buffer);
-      fclose(fo);
-      fclose(fi);
-    } else {
-      fprintf(stderr, "Unable to open input file\n");
+    readSigHeader(fsig);
+    fseek(fsig, 0, SEEK_END);
+    int sigcount = (ftell(fsig) - cfg.headersize) / cfg.sig_record_size;
+    fseek(fsig, cfg.headersize, SEEK_SET);
+    
+    //unsigned char *sigheader_buffer = malloc(cfg.sig_offset);
+    //unsigned char *sig_buffer = malloc(cfg.sig_width / 8);
+    unsigned char *sig_buffer = malloc(cfg.sig_record_size * sigcount);
+    fread(sig_buffer, cfg.sig_record_size, sigcount, fsig);
+    
+    int topic_id;
+    char topic_rem[4096];
+    for (;;) {
+      if (fscanf(fi, "%d %[^\n]\n", &topic_id, topic_rem) < 2) break;
+      char *docname = (char *)sig_buffer + cfg.sig_record_size * topic_id;
+      fprintf(fo, "%s %s\n", docname, topic_rem);
     }
+
+    free(sig_buffer);
+    fclose(fo);
+    fclose(fi);
     fclose(fsig);
   } else {
     fprintf(stderr, "Unable to open signature file\n");
