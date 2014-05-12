@@ -17,7 +17,7 @@ void Signature_InitCfg();
 Signature *NewSignature(const char *docid);
 void SignatureFillDoubles(Signature *, double *);
 void SignatureDestroy(Signature *sig);
-void SignatureAdd(SignatureCache *, Signature *, const char *term, int count, int total_count);
+void SignatureAdd(SignatureCache *, Signature *, const char *term, int count, int total_count, int dinesha);
 void SignatureAddWeighted(SignatureCache *, Signature *, const char *term, int count, int total_count, double weight);
 void SignatureAddOffset(SignatureCache *, Signature *, const char *term, int count, int total_count, int offset_begin, int offset_end, int dinesha);
 void SignatureSetValues(Signature *sig, Document *doc);
