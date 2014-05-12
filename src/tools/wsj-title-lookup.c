@@ -91,29 +91,41 @@ static void wsjread(FILE *fp)
 
 int main(int argc, char **argv)
 {
-  FILE *fi_in = fopen(argv[1], "r");
-  FILE *fi_xml = fopen(argv[2], "rb");
+  if (argc < 2) {
+    fprintf(stderr, "Usage: ./wsj-title-lookup [wsj.xml] (TREC results file)\n");
+    exit(1);
+  }
+
+  FILE *fi_xml = fopen(argv[1], "rb");
   
-  printf("Reading %s", argv[2]);
+  FILE *fi_in;
+  if (argc == 3)
+    fi_in = fopen(argv[2], "r");
+  else
+    fi_in = stdin;
+  
+  fprintf(stderr, "Reading %s", argv[1]);
   wsjread(fi_xml);
-  printf("...done\n");
+  fprintf(stderr, "...done\n");
   
   for (;;) {
-    char orig_doc[32];
-    char comp_doc[32];
+    char orig_doc[128];
+    char dummy[16];
+    char comp_doc[128];
+    char rest_of_line[1024];
     int doc_dist;
-    if (fscanf(fi_in, "%s%s%d\n", orig_doc, comp_doc, &doc_dist) < 3) break;
+    if (fscanf(fi_in, "%s%s%s%[^\n]\n", orig_doc, dummy, comp_doc, rest_of_line) < 4) break;
     doc *D;
     
     char *orig_doc_title = "(unknown)";
     char *comp_doc_title = "(unknown)";
     
     HASH_FIND_STR(docs, orig_doc, D);
-    orig_doc_title = D->doctitle;
+    if (D) orig_doc_title = D->doctitle;
     HASH_FIND_STR(docs, comp_doc, D);
-    comp_doc_title = D->doctitle;
+    if (D) comp_doc_title = D->doctitle;
     
-    printf("Distance: %d (\"%s\" -> \"%s\")\n", doc_dist, orig_doc_title, comp_doc_title);
+    printf("[%s] %s [%s] %s\n", orig_doc_title, dummy, comp_doc_title, rest_of_line);
   }
   
   fclose(fi_in);
