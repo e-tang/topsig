@@ -211,12 +211,14 @@ static void warc_erasebuffer(char *buffer, int *buffer_filled, int erase_bytes)
   // to the start.
   memmove(buffer, buffer + erase_bytes, WARC_BUFFER - erase_bytes);
   *buffer_filled -= erase_bytes;
+  //memset(buffer + *buffer_filled, 0, erase_bytes);
+  *(buffer + *buffer_filled) = '\0';
 }
 
-static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
+static void AR_warc_original(FileHandle *fp, void (*processfile)(Document *))
 {
-  char buffer[WARC_BUFFER];
-  char header[WARC_BUFFER];
+  char buffer[WARC_BUFFER + 1];
+  char header[WARC_BUFFER + 1];
   int buffer_filled = 0;
   int eof = 0;
   // WARC files consist of records with headers, containing several named fields
@@ -224,16 +226,33 @@ static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
   
   while (!(eof && (buffer_filled == 0))) {
     eof = warc_fillbuffer(fp, buffer, &buffer_filled);
-    char *header_end = strstr(strstr(buffer, "Content-Length:"), "\n\n");
-    if (header_end == NULL) {
-      fprintf(stderr, "WARC format error\n");
-      exit(1);
+    char *start_content_length = strstr(buffer, "Content-Length:");
+    if (start_content_length == NULL) {
+      if (eof) {
+        fprintf(stderr, "WARNING!!! - WARC format error - can not find Content-Length: - skipping the rest of archive - %d bytes remaining\n", buffer_filled);
+        break;
+      } else {
+        fprintf(stderr, "WARC format error - missing Content-Length\n");
+        exit(1);
+      }
     }
-    
-    header_end += 2;
+    char *header_end = strstr(start_content_length, "\r\n\r\n");
+    if (header_end == NULL) {
+      header_end = strstr(start_content_length, "\n\n");
+      if (header_end == NULL) {
+        fprintf(stderr, "WARC format error\n");
+        exit(1);
+      }
+      header_end += 2;
+    } else {
+      header_end += 4;
+    }
+
     size_t header_size = header_end - buffer;
     strncpy(header, buffer, header_size);
     header[header_size] = '\0';
+//printf("%s\n\n", header);
+
     
     // WARC records have plenty of records, the ones we care about are
     // 'WARC-Type', 'WARC-TREC-ID' and 'Content-Length'
@@ -246,11 +265,14 @@ static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
     pos = strstr(header, "WARC-Type:");
     if (pos) {
       sscanf(pos, "%s %s", fieldname, WARC_Type);
-    } else {
+      //printf("WARC-Type = %s\n", WARC_Type);
+    } else {	
+      fprintf(stderr, "%s\n", header);
       fprintf(stderr, "WARC format error B\n");
       exit(1);
     }
-    pos = strstr(header, "Content-Length:");
+    pos = strstr(header, "Content-Length: ");
+//char* clpos = pos;
     if (pos) {
       sscanf(pos, "%s %d", fieldname, &Content_Length);
     } else {
@@ -261,7 +283,20 @@ static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
     pos = strstr(header, "WARC-TREC-ID:");
     if (pos) {
       sscanf(pos, "%s %s", fieldname, WARC_TREC_ID);
+      //static int count = 0;
+      //printf("WARC-TREC-ID = %s, eof = %d count = %d buffer_filled = %d\n", WARC_TREC_ID, eof, count++, buffer_filled);
     }
+
+    /*
+    if (strcmp("clueweb12-0110wb-19-17101", WARC_TREC_ID) == 0){ 
+      printf("%s\n", clpos);
+      printf("%d\n", Content_Length);
+    char tmpbuf[1024] = "";
+    snprintf(tmpbuf, 1024, "start content length = %s\n", start_content_length);
+    printf("%s\n", tmpbuf);
+      exit(1);
+    }
+   */
     
     warc_erasebuffer(buffer, &buffer_filled, header_size);
     
@@ -282,7 +317,177 @@ static void AR_warc(FileHandle *fp, void (*processfile)(Document *))
     }
     newDoc->data[filedat_size] = '\0';
     
+   /* 
+    if (strcmp("clueweb12-0110wb-19-17101", WARC_TREC_ID) == 0){ 
+    //char tmpbuf[1024] = "";
+    //snprintf(tmpbuf, 1024, "start content length = %s\n", start_content_length);
+    //printf("%s\n", tmpbuf);
+    printf("Content-Length = %d\n", Content_Length);
+    printf("WARC-TREC-ID = %s\n", WARC_TREC_ID);
+    printf("WARC-Type = %s\n", WARC_Type);
+    getchar();
+    printf("--------\n%s\n--------\n", newDoc->data);
+    getchar();
+    }
+   */
+    
+
     if (lc_strcmp(WARC_Type, "response")==0) {
+      //printf("Index [%s]\n", newDoc->docid);
+      processfile(newDoc);
+    } else {
+      FreeDocument(newDoc);
+    }
+  }
+}
+
+static int warc_read_header_line(FileHandle *fp, char *buf, const size_t buflen) {
+  size_t bufpos = 0; // where to insert next char
+  for (;;) {
+    char c = -1;
+    int bytes_read = file_read(&c, 1, fp);
+    if (bytes_read == 0) {
+      return 1; // reached EOF
+    }
+    if (c == '\n') {
+      break;
+    } else if (c == '\0' || c == '\r') {
+      c = ' ';
+    }
+    buf[bufpos++] = c;
+    if (bufpos == buflen - 1) { // last position is for string null terminator
+      break;
+    }
+  }
+  buf[bufpos] = '\0';
+  trim(buf);
+  return 0; // not EOF
+}
+
+// only 3 fields are required from the WARC header
+typedef struct {
+  char WARC_Type[256];
+  char WARC_TREC_ID[256]; // TREC ID is only populated if WARC_Type is response
+  int Content_Length;
+} WarcHeader;
+
+#define MAX_WARC_HEADER_LINE 65536
+#define MAX_FIELDNAME 256
+static int warc_read_header(FileHandle *fp, WarcHeader *header) {
+  // initialize
+  strcpy(header->WARC_Type, "");
+  strcpy(header->WARC_TREC_ID, "");
+  header->Content_Length = -1;
+
+  for (;;) {
+    // read a line
+    char buf[MAX_WARC_HEADER_LINE] = "";
+    if (warc_read_header_line(fp, buf, MAX_WARC_HEADER_LINE)) {
+      // reached EOF
+      return 1;
+    }
+    
+    // warc header ends with a blank line
+    if (strcmp(buf, "") == 0) {
+      break;
+    }
+
+    // parse fieldname
+    char fieldname[MAX_FIELDNAME] = "";
+    char *end_fieldname = strchr(buf, ':');
+    if (end_fieldname == 0) {
+      continue; // not a field
+    }
+    char *src = buf, *dst = fieldname, *dstend = fieldname + MAX_FIELDNAME;
+    while (src != end_fieldname && dst != dstend) {
+      *dst++ = *src++;
+    }
+    *dst = '\0';
+    //printf("%s\n", fieldname);
+
+    // parse field
+    char *field = end_fieldname + 1; // skip the : separator
+    if (lc_strcmp(fieldname, "WARC-Type") == 0) {
+      sscanf(field, "%s", header->WARC_Type);
+    } else if (lc_strcmp(fieldname, "Content-Length") == 0) {
+      sscanf(field, "%d", &header->Content_Length);
+    } else if (lc_strcmp(fieldname, "WARC-TREC-ID") == 0) {
+      sscanf(field, "%s", header->WARC_TREC_ID);
+    }
+  }
+
+  // check everything was read
+  if (strcmp(header->WARC_Type, "") == 0) {
+    fprintf(stderr, "WARC format error - can not read WARC-Type:\n");
+    exit(1);
+  }
+  if (lc_strcmp(header->WARC_Type, "response") == 0 && strcmp(header->WARC_TREC_ID, "") == 0) {
+    fprintf(stderr, "WARC format error - can not read WARC-TREC-ID:\n");
+    exit(1);
+  }
+  if (header->Content_Length < 0) {
+    fprintf(stderr, "WARC format error - can not read Content-Length:\n");
+    exit(1);
+  }
+  
+  // not EOF
+  return 0;
+}
+
+static void warc_read_content(FileHandle *fp, char *data, const int Content_Length) {
+  // fill data byte reading Content_Length bytes
+  int bytes_read = 0;
+  while (bytes_read < Content_Length) {
+    int current_bytes_read = file_read(data + bytes_read, Content_Length - bytes_read, fp);
+    if (current_bytes_read == 0) {
+      fprintf(stderr, "WARC format error - EOF reached while reading content section\n");
+      exit(1);
+    }
+    bytes_read += current_bytes_read;
+  }
+
+  // some content contains null characters
+  for (int i = 0; i < Content_Length; i++) {
+    if (data[i] == '\0') {
+      data[i] = '_';
+    }
+  }
+  data[Content_Length] = '\0';
+}
+
+static void AR_warc(FileHandle *fp, void (*processfile)(Document *)) {
+  for (;;) {
+    // read header
+    WarcHeader header;
+    if (warc_read_header(fp, &header)) {
+      // reached EOF
+      return;
+    }
+
+    // read content
+    Document *newDoc = NewDocument(header.WARC_TREC_ID, NULL);
+    newDoc->data = malloc(header.Content_Length + 1);
+    warc_read_content(fp, newDoc->data, header.Content_Length);
+
+    //printf("-->%s<--\n", newDoc->data);
+    if (strcmp("clueweb12-0110wb-19-32319", header.WARC_TREC_ID) == 0) {
+    printf("%s\n", header.WARC_TREC_ID);
+    printf("-->%s<--\n", newDoc->data);
+    }
+  
+    // warc has two trailing empty lines 
+    char buf[MAX_WARC_HEADER_LINE] = "";
+    for (int i = 0; i < 2; i++ ) {
+      warc_read_header_line(fp, buf, MAX_WARC_HEADER_LINE);
+      //printf("-->%s<--\n", buf);
+      if (strcmp(buf, "") != 0) {
+        fprintf(stderr, "WARC format error - can not read 2 empty lines after content\n");
+        exit(1);
+      }
+    }
+
+    // process the document
+    if (lc_strcmp(header.WARC_Type, "response") == 0) {
       //printf("Index [%s]\n", newDoc->docid);
       processfile(newDoc);
     } else {
@@ -396,13 +601,13 @@ static void AR_newline(FileHandle *fp,  void (*processfile)(Document *))
   int file_index = 0;
   
   for (;;) {
-    if ((doc_start = buf) != NULL) {
+    if ((doc_start = strstr(buf, "\n")) != NULL) {
       if ((doc_end = strstr(doc_start+1, "\n")) != NULL) {
         file_index++;
         doclen = doc_end-buf;
         
         char *filename = malloc(8);
-        sprintf(filename, "%d", file_index);
+        sprintf(filename, "%04d", file_index);
                 
         archiveSize = doc_end-doc_start;
 
