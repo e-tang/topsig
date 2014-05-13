@@ -638,7 +638,7 @@ static void *Throughput_Job(void *input, void *thread_data)
   int top_k = T->top_k;
   unsigned char *pseudo_sig = malloc(sig_cfg->sig_record_size);
   
-  ScoreTable scores = TP->scores;
+  ScoreTable *scores = &TP->scores;
   
   int doc_i = 0;
   for (int doc_cmp = T->doc_begin; doc_cmp < T->doc_end; doc_cmp++) {
@@ -648,13 +648,13 @@ static void *Throughput_Job(void *input, void *thread_data)
       int width = slice_width(issl_cfg->sig_width, issl_cfg->num_slices, slice);
       int val = get_slice_at(sig, slice_pos, width);
       //fprintf(stderr, "Slice %d val %d (@%d,%d)\n", slice, val, slice_pos, width);
-      Traverse_ISSL(issl_counts[slice], issl_table[slice], &scores, variants, n_variants_ceasenew, n_variants_stopearly, val, width);
+      Traverse_ISSL(issl_counts[slice], issl_table[slice], scores, variants, n_variants_ceasenew, n_variants_stopearly, val, width);
       slice_pos += width;
       //fprintf(stderr, "Score of cmp: %d\n", scores.score[doc_cmp]);
 
     }
     
-    ScoreTable *sct[1] = {&scores};
+    ScoreTable *sct[1] = {scores};
     T->output[doc_i] = Summarise(sct, 1, top_k, TP->threadid);
     Clarify_Results(sig_cfg, &T->output[doc_i], sig_file, sig, -1);
     if (0) {

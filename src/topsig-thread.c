@@ -369,7 +369,7 @@ void TBPClose(TBPHandle *H)
 // New thread pool implementation, because why not have like 5 of these?
 
 typedef struct {
-  pthread_mutex_t lock;
+  pthread_mutex_t *lock;
   int jobs;
   void **job_inputs;
   void *thread_input;
@@ -381,7 +381,7 @@ void *DWTP_Worker(void *in) {
   DWTP *dwtp = in;
   
   for (;;) {
-    pthread_mutex_lock(&(dwtp->lock));
+    pthread_mutex_lock(dwtp->lock);
     int my_job = -1;
     for (int i = 0; i < dwtp->jobs; i++) {
       if (dwtp->job_statuses[i] == 0) {
@@ -390,7 +390,7 @@ void *DWTP_Worker(void *in) {
         break;
       }
     }
-    pthread_mutex_unlock(&(dwtp->lock));
+    pthread_mutex_unlock(dwtp->lock);
     if (my_job == -1) break;
     dwtp->start_routine(dwtp->job_inputs[my_job], dwtp->thread_input);
   }
@@ -403,8 +403,8 @@ void DivideWorkTP(void **job_inputs, void **thread_inputs, void *(*start_routine
 {
   pthread_t workthreads[threads];
   DWTP dwtp;
-  
-  pthread_mutex_init(&dwtp.lock, NULL);
+  dwtp.lock = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(dwtp.lock, NULL);
   dwtp.jobs = jobs;
   dwtp.job_inputs = job_inputs;
   dwtp.thread_input = NULL;
@@ -425,4 +425,5 @@ void DivideWorkTP(void **job_inputs, void **thread_inputs, void *(*start_routine
     pthread_join(workthreads[i], NULL);
   }
   free(dwtp.job_statuses);
+  free(dwtp.lock);
 }
