@@ -255,8 +255,8 @@ void RunExhaustiveDocsimSearch()
     Worker_Throughput *thread_data = malloc(sizeof(Worker_Throughput));
     thread_data->sig_cfg = &sig_cfg;
     thread_data->sig_file = sig_file;
-    thread_data->doc_begin = total_docs * i / thread_count;
-    thread_data->doc_end = total_docs * (i+1) / thread_count;
+    thread_data->doc_begin = total_docs * i / thread_count + search_doc_first;
+    thread_data->doc_end = total_docs * (i+1) / thread_count + search_doc_first;
     threads[i] = thread_data;
   }
   

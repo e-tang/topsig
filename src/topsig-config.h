@@ -10,4 +10,6 @@ void ConfigOverride(const char *var, const char *val);
 
 void ConfigUpdate();
 
+char *trim(char *string);
+
 #endif
