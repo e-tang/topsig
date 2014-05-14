@@ -78,7 +78,7 @@ void ConfigOverride(const char *var, const char *val)
 }
 
 // Remove whitespace from the beginning and end of this string
-static char *trim(char *string)
+char *trim(char *string)
 {
   int s_whitespace = 0;
   int len = strlen(string);

@@ -712,7 +712,6 @@ void RunSearchISLTurbo()
   if (Config("SEARCH-DOC-JOBS")) {
     job_count = atoi(Config("SEARCH-DOC-JOBS"));
   }
-  
   int search_doc_first = 0;
   int search_doc_last = issl_cfg.signature_count - 1;
   
@@ -720,6 +719,8 @@ void RunSearchISLTurbo()
     search_doc_first = atoi(Config("SEARCH-DOC-FIRST"));
   if (Config("SEARCH-DOC-LAST"))
     search_doc_last = atoi(Config("SEARCH-DOC-LAST"));
+    
+  fprintf(stderr, "search_doc_last %d\n", search_doc_last);
   
   if (search_doc_first < 0) {
     fprintf(stderr, "ERROR: SEARCH_DOC_FIRST value (%d) out of range.\n", search_doc_first);
@@ -753,8 +754,8 @@ void RunSearchISLTurbo()
     per_job_data->sig_cfg = &sig_cfg;
     per_job_data->issl_cfg = &issl_cfg;
     per_job_data->sig_file = sig_file;
-    per_job_data->doc_begin = total_docs * i / job_count;
-    per_job_data->doc_end = total_docs * (i+1) / job_count;
+    per_job_data->doc_begin = total_docs * i / job_count + search_doc_first;
+    per_job_data->doc_end = total_docs * (i+1) / job_count + search_doc_first;
     per_job_data->issl_counts = issl_counts;
     per_job_data->issl_table = issl_table;
     per_job_data->v.variants = variants;
